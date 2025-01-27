@@ -1,30 +1,71 @@
 module.exports.config = {
- name: "rushia",
- version: "1.0.0",
- hasPermssion: 0,
- credits: "𝐏𝐫𝐢𝐲𝐚𝐧𝐬𝐡 𝐑𝐚𝐣𝐩𝐮𝐭",
- description: "Random Rushia",
- commandCategory: "random-img",
- usages: "rushia",
- cooldowns: 3
+    name: "روليت",
+    version: "1.0.0",
+    permission: 0,
+    credits: "Assistant",
+    prefix: true,
+    description: "لعبة عجلة الروليت الفخمة",
+    category: "الألعاب",
+    cooldowns: 10
 };
 
-module.exports.run = async ({ api, event }) => {
- const axios = require('axios');
- const request = require('request');
- const fs = require("fs");
- axios.get('https://saikiapi-v3-production.up.railway.app/holo/rushia').then(res => {
- let ext = res.data.url.substring(res.data.url.lastIndexOf(".") + 1);
- let callback = function () {
-     api.sendMessage({
-      attachment: fs.createReadStream(__dirname + `/cache/rushia.${ext}`)
-     }, event.threadID, () => fs.unlinkSync(__dirname + `/cache/rushia.${ext}`), event.messageID);
-   api.setMessageReaction("✅", event.messageID, (err) => {}, true);
-    };
-    request(res.data.url).pipe(fs.createWriteStream(__dirname + `/cache/rushia.${ext}`)).on("close", callback);
-   })
-      .catch(err => {
-                     api.sendMessage("there's something problem while generating photo, please try again!", event.threadID, event.messageID);
-    api.setMessageReaction("☹️", event.messageID, (err) => {}, true);
-                  })    
-}
+module.exports.run = async function({ api, event, args, Currencies }) {
+    const { threadID, senderID, messageID } = event;
+    
+    const rewards = [
+        { value: 2, text: "ربحت ضعف المبلغ! 💰" },
+        { value: 0, text: "خسرت رهانك! 💸" }
+    ];
+
+    // التحقق من الرهان
+    const betAmount = parseInt(args[0]);
+    if (!betAmount || isNaN(betAmount) || betAmount < 1) {
+        return api.sendMessage(
+            "⚠️ الرجاء إدخال مبلغ الرهان!\nمثال: روليت 5", 
+            threadID, messageID
+        );
+    }
+
+    // التحقق من رصيد المستخدم
+    const userMoney = (await Currencies.getData(senderID)).money;
+    if (userMoney < betAmount) {
+        return api.sendMessage(
+            "❌ عذراً، رصيدك غير كافي للرهان بهذا المبلغ!", 
+            threadID, messageID
+        );
+    }
+
+    // إرسال رسالة البداية
+    api.sendMessage(
+        "🎰 جارِ تدوير عجلة الحظ...\n⏳ انتظر النتيجة...", 
+        threadID,
+        async () => {
+            // تأخير 3 ثواني
+            await new Promise(resolve => setTimeout(resolve, 3000));
+
+            // اختيار نتيجة عشوائية (50% فرصة للربح و 50% للخسارة)
+            const result = rewards[Math.random() < 0.5 ? 0 : 1];
+            let winAmount = result.value * betAmount;
+            let finalAmount = result.value === 0 ? -betAmount : betAmount;
+
+            // إنشاء رسالة النتيجة
+            let resultMessage = "🎲 نتيجة الروليت 🎲\n";
+            resultMessage += "━━━━━━━━━━━━━━━━━━\n";
+            resultMessage += `👤 النتيجة: ${result.text}\n`;
+            
+            if (result.value === 0) {
+                resultMessage += `📌 خسرت: ${betAmount} دولار\n`;
+            } else {
+                resultMessage += `💰 ربحت: ${winAmount} دولار\n`;
+                resultMessage += `📊 صافي الربح: ${finalAmount} دولار\n`;
+            }
+            resultMessage += "━━━━━━━━━━━━━━━━━━";
+
+            // تحديث رصيد المستخدم
+            await Currencies.increaseMoney(senderID, finalAmount);
+
+            // إرسال النتيجة
+            api.sendMessage(resultMessage, threadID);
+        }
+    );
+};
