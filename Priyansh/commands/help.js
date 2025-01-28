@@ -22,7 +22,7 @@ module.exports.onLoad = async() => {
   const dirMaterial = __dirname + `/cache/canvas/`;
   const path = resolve(__dirname, 'cache/canvas', 'sato.png');
   if (!existsSync(dirMaterial + "canvas")) mkdirSync(dirMaterial, { recursive: true });
-  if (!existsSync(path)) await downloadFile("https://i.imgur.com/dsrmtlg.jpg", path);
+  if (!existsSync(path)) await downloadFile("https://up6.cc/2025/01/173810466407091.jpg", path);
 }
 
 async function makeImage({ one, two }) {
@@ -66,10 +66,10 @@ module.exports.run = async function ({ event, api, args }) {
   const fs = global.nodemodule["fs-extra"];
   const { threadID, messageID, senderID } = event;
   const mention = Object.keys(event.mentions);
-  if (!mention[0]) return api.sendMessage("يࢪج مہَِۦِٰؖـِمنڪَِكِ و໑ضعٛ ټـِٲﺂٖعٛ عٛݪ ـِٲﺂٖݪشہَِۦِٰؖـِشخَـِخَص ـِٲﺂٖݪمہَِۦِٰؖـِمࢪـِٲﺂٖډف", threadID, messageID);
+  if (!mention[0]) return api.sendMessage("يࢪج مہَِۦِٰؖـِمنڪَِكِ و໑ضعٛ ټـِٲﺂٖعٛ عٛݪ ـِٲﺂٖݪشہَِۦِٰؖـِشخَـِخَص ـِٲﺂٖݪمہَِۦِٰؖـِمࢪـِٲﺂٖډف", threadID, messageID);
   else {
       const one = senderID, two = mention[0];
-      api.sendMessage("جاٰﭑر͜ اٰﭑلصٖصفع اٰﭑنتضر͜ وꪇلم*هَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِاَِاَِاَِاَِاَِاَِاَِاَِاَِيَِۂ.ᵳ♚َِ َِ❈َِ✌َِ☻َِ َِ❥َِ↷َِ͢💜َِ┊َِَ", threadID, messageID);
-      return makeImage({ one, two }).then(path => api.sendMessage({ body: "تـم صٖصفـع هہذاٰﭑ اٰﭑلش͜ـ̠شخصٖص بنجاٰﭑح *هَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِاَِاَِاَِاَِاَِاَِاَِاَِاَِيَِۂ.ᵳ♚َِ َِ❈َِ✌َِ☻َِ َِ❥َِ↷َِ͢💜َِ┊َِَِ😂َِ🚬َِِِ*", attachment: fs.createReadStream(path) }, threadID, () => fs.unlinkSync(path), messageID));
+      api.sendMessage("جاٰﭑر͜ اٰﭑلصٖصفع اٰﭑنتضر͜ وꪇلم*هَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِاَِاَِاَِاَِاَِاَِاَِاَِاَِيَِۂ.ᵳ♚َِ َِ❈َِ✌َِ☻َِ َِ❥َِ↷َِ͢💜َِ┊ََِ", threadID, messageID);
+      return makeImage({ one, two }).then(path => api.sendMessage({ body: "تـم صٖصفـع هہذاٰﭑ اٰﭑلش͜ـ̠شخصٖص بنجاٰﭑح *هَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِهَِاَِاَِاَِاَِاَِاَِاَِاَِاَِيَِۂ.ᵳ♚َِ َِ❈َِ✌َِ☻َِ َِ❥َِ↷َِ͢💜َِ┊ََِِ😂َِ🚬َِِِ*", attachment: fs.createReadStream(path) }, threadID, () => fs.unlinkSync(path), messageID));
   }
 }
