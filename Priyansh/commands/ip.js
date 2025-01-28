@@ -1,5 +1,4 @@
 const fs = require("fs");
-const request = require("request");
 const { join } = require("path");
 
 function getUserMoney(senderID) {
@@ -14,18 +13,18 @@ function getUserMoney(senderID) {
 }
 
 function getRank(exp) {
-  if (exp >= 100000) return 'خارق🥇';
-  if (exp >= 20000) return '🥈عظيم';
-  if (exp >= 10000) return '👑أسطوري';
-  if (exp >= 8000) return 'نشط🔥 قوي';
-  if (exp >= 4000) return '🌠نشط';
-  if (exp >= 2000) return 'متفاعل🏅 قوي';
-  if (exp >= 1000) return '🎖️متفاعل جيد';
-  if (exp >= 800) return '🌟متفاعل';
-  if (exp >= 500) return '✨لا بأس';
-  if (exp >= 300) return '👾مبتدأ';
-  if (exp >= 100) return '🗿صنم';
-  return 'ميت⚰️';
+  if (exp >= 100000) return '🌟 خَارِق';
+  if (exp >= 20000) return '🥈 عَظِيم';
+  if (exp >= 10000) return '👑 أُسطُورِي';
+  if (exp >= 8000) return '🔥 نَشِط قَوِي';
+  if (exp >= 4000) return '🌠 نَشِط';
+  if (exp >= 2000) return '🏅 مُتَفاعِل قَوِي';
+  if (exp >= 1000) return '🎖️ مُتَفاعِل جَيِّد';
+  if (exp >= 800) return '🌟 مُتَفاعِل';
+  if (exp >= 500) return '✨ لا بَأْس';
+  if (exp >= 300) return '👾 مُبْتَدِئ';
+  if (exp >= 100) return '🗿 صَنَم';
+  return '⚰️ مَيِّت';
 }
 
 function getUserGender(genderCode) {
@@ -36,86 +35,32 @@ function getUserGender(genderCode) {
 
 module.exports.config = {
   name: "ايدي",
-  version: "1.0.3",
+  version: "1.0.5",
   hasPermssion: 0,
   credits: "ǺᎩᎧᏬᏰ",
-  description: "user facebookID",
-  commandCategory: "🎮الالعاب🎮",
+  description: "عرض معلومات المستخدم باستخدام Facebook ID",
+  commandCategory: "🎮 الألعاب 🎮",
   cooldowns: 0,
 };
 
-module.exports.run = async function ({ args, api, event, Currencies, client }) {
+module.exports.run = async function ({ args, api, event, Currencies }) {
+  const targetId = "100015903097543"; // معرف المستخدم المحدد
+
   try {
-    const data = await api.getThreadInfo(event.threadID);
-    const storage = [];
-    for (const value of data.userInfo) {
-      storage.push({ id: value.id, name: value.name });
-    }
+    const user_data = await api.getUserInfo(targetId);
+    const name = user_data[targetId].name;
+    const gender = getUserGender(user_data[targetId].gender);
 
-    const exp = [];
-    for (const user of storage) {
-      const countMess = await Currencies.getData(user.id);
-      exp.push({
-        name: user.name,
-        exp: typeof countMess.exp == "undefined" ? 0 : countMess.exp,
-        uid: user.id,
-      });
-    }
+    const moneyFromFile = getUserMoney(targetId);
+    const moneyFromUserData = (await Currencies.getData(targetId)).money || 0;
+    const exp = (await Currencies.getData(targetId)).exp || 0;
+    const rank = getRank(exp);
 
-    exp.sort((a, b) => {
-      if (a.exp > b.exp) return -1;
-      if (a.exp < b.exp) return 1;
-      return 0;
-    });
+    const msg = `👤 الاسم: 『${name}』\n📊 الخبرة: 『${exp}』\n🏆 الرتبة: 『${rank}』\n💰 البنك: 『${moneyFromFile}💲』\n💵 الكاش: 『${moneyFromUserData}💵』`;
 
-    const userId = event.type == "message_reply" ? event.messageReply.senderID : event.senderID;
-    const infoUser = exp.find(info => parseInt(info.uid) === parseInt(userId));
-
-    const id = event.type == "message_reply" ? event.messageReply.senderID : event.senderID;
-    const user_data = await api.getUserInfo(id);
-    const name = user_data[id].name;
-    const gender = getUserGender(user_data[id].gender);
-
-    const pictureCallback = async () => {
-      try {
-        const moneyFromFile = getUserMoney(id); 
-        const moneyFromUserData = (await Currencies.getData(id)).money || 0; 
-
-        const rank = getRank(infoUser.exp);
-
-        const msg = `↬اٰﭑس͜ــَِﮯَـَِمـَِﮯَـَِڪ👤: 『${name}』\n↬ر͜س͜ـاٰﭑيلـَِﮯَـَِڪ: 『${infoUser.exp}』\n↬ر͜تبتـَِﮯَـَِڪ: 『${rank}』\nالبنك💰: 『${moneyFromFile}💲』\nالكاش💰: 『${moneyFromUserData}💵』`;
-
-        api.sendMessage({
-          body: msg,
-          attachment: fs.createReadStream(__dirname + "/cache/1.png"),
-        }, event.threadID, () => {
-          fs.unlinkSync(__dirname + "/cache/1.png");
-        });
-
-      } catch (error) {
-        console.error(error);
-      }
-    };
-
-    const pictureRequest = request(
-      encodeURI(
-        `https://graph.facebook.com/${id}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`
-      )
-    );
-
-    pictureRequest.pipe(fs.createWriteStream(__dirname + "/cache/1.png")).on("close", pictureCallback);
-
-    api.sendMessage(
-      ``,
-      event.threadID
-    );
+    api.sendMessage(msg, event.threadID);
   } catch (error) {
     console.error(error);
-
-    api.sendMessage(
-      `حدث خطأ: ${error.message}`,
-      event.threadID,
-      event.messageID
-    );
+    api.sendMessage(`حدث خطأ: ${error.message}`, event.threadID, event.messageID);
   }
 };
