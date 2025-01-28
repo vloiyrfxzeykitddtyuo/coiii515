@@ -1,5 +1,5 @@
 module.exports.config = {
-    name: "شين",
+    name: "المارد الأزرق",
     version: "1.0.0",
     hasPermssion: 0,
     credits: "احمد عجينة",
@@ -9,38 +9,49 @@ module.exports.config = {
     cooldowns: 500
 };
 
-const Akinator = require("akinator"); // تأكد من تثبيت مكتبة Akinator
+const usersDemon = {};
 
 module.exports.run = async function({ api, event, args }) {
     const { threadID, messageID, senderID } = event;
 
-    const startGame = async () => {
-        const aki = new Akinator();
-        const session = await aki.startGame();
-        return session;
-    };
-
+    // بدء اللعبة
     if (args[0] === "بدء") {
-        const session = await startGame();
-        const question = session.firstQuestion;
+        if (usersDemon[senderID]) {
+            return api.sendMessage("⚠️ | أنت بالفعل في لعبة!", threadID, messageID);
+        }
 
-        // إرسال السؤال الأول
-        return api.sendMessage(`*- فكر في شخصية مشهورة -*\n\n${question}`, threadID, messageID);
+        usersDemon[senderID] = {
+            questionIndex: 0,
+            questions: [
+                "هل الشخصية أنثى؟",
+                "هل الشخصية مشهورة؟",
+                "هل الشخصية حقيقية؟",
+                "هل الشخصية رياضية؟",
+                "هل الشخصية من أفلام؟"
+            ],
+            answers: []
+        };
+
+        return api.sendMessage(usersDemon[senderID].questions[usersDemon[senderID].questionIndex], threadID, messageID);
     }
 
-    // إذا كان هناك رد على السؤال
-    if (args.length > 1) {
-        const response = args[1]; // الحصول على الإجابة من المستخدم
-        const nextQuestion = await session.answer(response); // استجابة لجولة جديدة من اللعبة
+    // معالجة الإجابات
+    if (usersDemon[senderID]) {
+        const userSession = usersDemon[senderID];
 
-        if (nextQuestion) {
-            return api.sendMessage(nextQuestion, threadID, messageID);
+        userSession.answers.push(args.join(" "));
+
+        userSession.questionIndex++;
+
+        if (userSession.questionIndex < userSession.questions.length) {
+            return api.sendMessage(userSession.questions[userSession.questionIndex], threadID, messageID);
         } else {
-            // إذا انتهت اللعبة
-            return api.sendMessage("✅ | لقد انتهت اللعبة! شكراً للعب!", threadID, messageID);
+            // إنهاء اللعبة
+            const finalMessage = `✅ | انتهت اللعبة! إجاباتك كانت: ${userSession.answers.join(", ")}`;
+            delete usersDemon[senderID];
+            return api.sendMessage(finalMessage, threadID, messageID);
         }
     }
 
     return api.sendMessage("⚠️ | يرجى كتابة `بدء` لبدء اللعبة!", threadID, messageID);
 };
-
