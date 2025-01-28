@@ -1,57 +1,57 @@
 module.exports.config = {
-    name: "المارد الأزرق",
+    name: "قوانين",
     version: "1.0.0",
     hasPermssion: 0,
     credits: "احمد عجينة",
-    description: "لعبة المارد الأزرق",
-    commandCategory: "الألعاب",
-    usages: "[بدء]",
+    description: "عرض قوانين المجموعة",
+    commandCategory: "القوانين",
+    usages: "",
     cooldowns: 5
 };
 
-const usersDemon = {};
+module.exports.run = async function({ api, event }) {
+    const { threadID, messageID } = event;
+    
+    const rules = `◈ ──────『✇』────── ◈
 
-module.exports.run = async function({ api, event, args }) {
-    const { threadID, messageID, senderID } = event;
+قــوانــيـن SCP
 
-    // بدء اللعبة
-    if (args[0] === "بدء") {
-        if (usersDemon[senderID]) {
-            return api.sendMessage("⚠️ | أنت بالفعل في لعبة!", threadID, messageID);
-        }
+◈ ──────『✇』────── ◈
 
-        usersDemon[senderID] = {
-            questionIndex: 0,
-            questions: [
-                "هل الشخصية أنثى؟",
-                "هل الشخصية مشهورة؟",
-                "هل الشخصية حقيقية؟",
-                "هل الشخصية رياضية؟",
-                "هل الشخصية من أفلام؟"
-            ],
-            answers: []
-        };
+1-يلزم على الكل وضع الشعار بشكل واضح وبحجم مناسب
+‼️يستحسن أن يتجاوز حجم الشعار نسبة 23٪
 
-        return api.sendMessage(usersDemon[senderID].questions[usersDemon[senderID].questionIndex], threadID, messageID);
-    }
+2-يمنع المزاح خارج الحدود او تقليل احترام الاخرين بحجة المزاح: طرد (1) ساعات
 
-    // معالجة الإجابات
-    if (usersDemon[senderID]) {
-        const userSession = usersDemon[senderID];
+3- يمنع العبث بإعدادات المجموعة ( الاكواد والاسم والصورة): طرد (42) ساعة
 
-        userSession.answers.push(args.join(" "));
+4- يمنع التحدث أثناء غلق الشات: طرد (2) ساعات
 
-        userSession.questionIndex++;
+5- يمنع مقاطعة المسؤولين اثناء الاجتماعات: طرد (2) ساعات
 
-        if (userSession.questionIndex < userSession.questions.length) {
-            return api.sendMessage(userSession.questions[userSession.questionIndex], threadID, messageID);
-        } else {
-            // إنهاء اللعبة
-            const finalMessage = `✅ | انتهت اللعبة! إجاباتك كانت: ${userSession.answers.join(", ")}`;
-            delete usersDemon[senderID];
-            return api.sendMessage(finalMessage, threadID, messageID);
-        }
-    }
+6- يمنع عمل تاغ لمسؤولي الاتحاد والانبو ومسؤولي الفريق بدون سبب : تحذير يلحقه طرد
 
-    return api.sendMessage("⚠️ | يرجى كتابة `بدء` لبدء اللعبة!", threadID, messageID);
+7-السب والشتم +18: طرد ودخول السجن
+
+8-التحدث عن الفرق الأخرى بسوء : طرد (3) ساعة
+
+9-التكلم عن الأديان والسياسة بتعصب: تحذير يلحقه طرد
+
+10-حذف رسائل بدون سكرين:طرد (6) ساعة
+
+11-سبام ممنوع نهائيا: طرد (72) ساعة (تنخفض العقوبة او تزيد حسب السبام)
+
+12-التشفير بالرسائل ممنوع منعا باتا : طرد (3) ساعة
+
+13-يمنع ارسال أي شيء مخل بالحياء كيف ما كان نوعه : طرد (24) ساعة
+
+14-يمنع ارسال الصور الشخصية : تحذير يلحقه خصم نقاط`;
+
+    const rulesImage = "https://up6.cc/2025/01/17380993985011.jpg"; // استبدل هذا برابط الصورة الخاصة بك
+
+    // إرسال الصورة مع القوانين
+    api.sendMessage({
+        body: rules,
+        attachment: await global.utils.getStreamFromURL(rulesImage)
+    }, threadID, messageID);
 };
