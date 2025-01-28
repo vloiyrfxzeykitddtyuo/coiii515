@@ -3,7 +3,7 @@ module.exports.config = {
     version: "1.0.0",
     hasPermssion: 0,
     credits: "YourName",
-    description: "Display the rules of the SCP group",
+    description: "Display the rules of the SCP group with an image",
     commandCategory: "other",
     usages: "",
     cooldowns: 5,
@@ -46,5 +46,7 @@ module.exports.run = async function({ api, event }) {
 14-يمنع ارسال الصور الشخصية : تحذير يلحقه خصم نقاط
 `;
 
-    api.sendMessage(rules, event.threadID);
+    const imageUrl = "https://up6.cc/2025/01/17380993985011.jpg"; // Replace this with the actual image URL
+
+    api.sendMessage({ body: rules, attachment: [api.attachmentUploadUrl(imageUrl)], location: { latitude: 0, longitude: 0 } }, event.threadID);
 };
