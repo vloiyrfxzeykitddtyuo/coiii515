@@ -1,4 +1,5 @@
 const fs = require("fs");
+const request = require("request");
 const { join } = require("path");
 
 function getUserMoney(senderID) {
@@ -35,7 +36,7 @@ function getUserGender(genderCode) {
 
 module.exports.config = {
   name: "ايدي",
-  version: "1.0.6",
+  version: "1.0.7",
   hasPermssion: 0,
   credits: "ǺᎩᎧᏬᏰ",
   description: "عرض معلومات المستخدم باستخدام Facebook ID",
@@ -45,7 +46,7 @@ module.exports.config = {
 
 module.exports.run = async function ({ args, api, event, Currencies }) {
   const targetId = event.type === "message_reply" ? event.messageReply.senderID : event.senderID;
-  
+
   try {
     const user_data = await api.getUserInfo(targetId);
     const name = user_data[targetId].name;
