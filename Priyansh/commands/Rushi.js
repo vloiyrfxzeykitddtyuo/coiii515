@@ -11,10 +11,11 @@ module.exports.config = {
 };
 
 module.exports.handleEvent = async function({ api, event }) {
-    const message = event.body?.toLowerCase();
+    const message = event.body;
     if (!message) return;
 
-    if (message.includes("جوان") || message.includes("ءجوان")) {
+    // التحقق من أن الرسالة تحتوي فقط على "جوان" أو "ءجوان"
+    if (message === "جوان" || message === "ءجوان") {
         const response = {
             body: "شنو تريد منها 👈🏻👉🏻🔪",
             attachment: await global.utils.getStreamFromURL("https://up6.cc/2025/01/173807054441831.jpg")
