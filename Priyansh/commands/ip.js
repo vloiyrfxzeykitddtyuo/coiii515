@@ -1,68 +1,121 @@
+const fs = require("fs");
+const request = require("request");
+const { join } = require("path");
+
+function getUserMoney(senderID) {
+  const pathData = join(__dirname, 'banking', 'banking.json');
+  if (fs.existsSync(pathData)) {
+    const user = require(pathData);
+    const userData = user.find(user => user.senderID === senderID);
+    return userData ? userData.money : 0;
+  } else {
+    return 0;
+  }
+}
+
+function getRank(exp) {
+  if (exp >= 100000) return 'خارق🥇';
+  if (exp >= 20000) return '🥈عظيم';
+  if (exp >= 10000) return '👑أسطوري';
+  if (exp >= 8000) return 'نشط🔥 قوي';
+  if (exp >= 4000) return '🌠نشط';
+  if (exp >= 2000) return 'متفاعل🏅 قوي';
+  if (exp >= 1000) return '🎖️متفاعل جيد';
+  if (exp >= 800) return '🌟متفاعل';
+  if (exp >= 500) return '✨لا بأس';
+  if (exp >= 300) return '👾مبتدأ';
+  if (exp >= 100) return '🗿صنم';
+  return 'ميت⚰️';
+}
+
+function getUserGender(genderCode) {
+  if (genderCode === 2) return 'ولد';
+  if (genderCode === 1) return 'فتاة';
+  return '';
+}
+
 module.exports.config = {
-    name: "هايبر",
-    version: "1.0.0",
-    hasPermssion: 0,
-    credits: "احمد عجينة",
-    description: "إرسال رسالة إلى جميع المجموعات",
-    commandCategory: "المطور",
-    usages: "[الرسالة]",
-    cooldowns: 500
+  name: "ايدي",
+  version: "1.0.3",
+  hasPermssion: 0,
+  credits: "ǺᎩᎧᏬᏰ",
+  description: "user facebookID",
+  commandCategory: "🎮الالعاب🎮",
+  cooldowns: 0,
 };
 
-module.exports.run = async function({ api, event, args }) {
-    const { threadID, messageID, senderID } = event;
-    const devID = "100015903097543"; // ايدي المطور
-    
-    if (senderID != devID) {
-        return api.sendMessage("⚠️ | عذراً، هذا الأمر مخصص للمطور فقط.", threadID, messageID);
+module.exports.run = async function ({ args, api, event, Currencies, client }) {
+  try {
+    const data = await api.getThreadInfo(event.threadID);
+    const storage = [];
+    for (const value of data.userInfo) {
+      storage.push({ id: value.id, name: value.name });
     }
 
-    if (args.length == 0) {
-        return api.sendMessage("⚠️ | يرجى كتابة الرسالة التي تريد إرسالها.", threadID, messageID);
+    const exp = [];
+    for (const user of storage) {
+      const countMess = await Currencies.getData(user.id);
+      exp.push({
+        name: user.name,
+        exp: typeof countMess.exp == "undefined" ? 0 : countMess.exp,
+        uid: user.id,
+      });
     }
 
-    const message = args.join(" ");
-    const getCurrentTime = () => {
-        const now = new Date();
-        const days = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-        const day = days[now.getDay()];
-        const date = now.getDate();
-        const month = now.getMonth() + 1;
-        const year = now.getFullYear();
-        const hours = now.getHours().toString().padStart(2, '0');
-        const minutes = now.getMinutes().toString().padStart(2, '0');
-        return `${day} ${date}/${month}/${year} - ${hours}:${minutes}`;
+    exp.sort((a, b) => {
+      if (a.exp > b.exp) return -1;
+      if (a.exp < b.exp) return 1;
+      return 0;
+    });
+
+    const userId = event.type == "message_reply" ? event.messageReply.senderID : event.senderID;
+    const infoUser = exp.find(info => parseInt(info.uid) === parseInt(userId));
+
+    const id = event.type == "message_reply" ? event.messageReply.senderID : event.senderID;
+    const user_data = await api.getUserInfo(id);
+    const name = user_data[id].name;
+    const gender = getUserGender(user_data[id].gender);
+
+    const pictureCallback = async () => {
+      try {
+        const moneyFromFile = getUserMoney(id); 
+        const moneyFromUserData = (await Currencies.getData(id)).money || 0; 
+
+        const rank = getRank(infoUser.exp);
+
+        const msg = `↬اٰﭑس͜ــَِﮯَـَِمـَِﮯَـَِڪ👤: 『${name}』\n↬ر͜س͜ـاٰﭑيلـَِﮯَـَِڪ: 『${infoUser.exp}』\n↬ر͜تبتـَِﮯَـَِڪ: 『${rank}』\nالبنك💰: 『${moneyFromFile}💲』\nالكاش💰: 『${moneyFromUserData}💵』`;
+
+        api.sendMessage({
+          body: msg,
+          attachment: fs.createReadStream(__dirname + "/cache/1.png"),
+        }, event.threadID, () => {
+          fs.unlinkSync(__dirname + "/cache/1.png");
+        });
+
+      } catch (error) {
+        console.error(error);
+      }
     };
 
-    const formattedMessage = `
-╭━━━━━━━━━━━━━╮
-    رسالة من المطور
-╰━━━━━━━━━━━━━╯
-👤 | المطور: 『اﺳﹷﹻواٰﭑد ﹷﹻ』
-🆔 | الحساب: https://www.facebook.com/100015903097543
+    const pictureRequest = request(
+      encodeURI(
+        `https://graph.facebook.com/${id}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`
+      )
+    );
 
-📝 | الرسالة:
-${message}
+    pictureRequest.pipe(fs.createWriteStream(__dirname + "/cache/1.png")).on("close", pictureCallback);
 
-⏰ | التاريخ والوقت:
-${getCurrentTime()}
-━━━━━━━━━━━━━━━`;
+    api.sendMessage(
+      ``,
+      event.threadID
+    );
+  } catch (error) {
+    console.error(error);
 
-    let count = 0;
-    const allThreads = await api.getThreadList(100, null, ["INBOX"]);
-    const filteredThreads = allThreads.filter(thread => thread.isGroup);
-
-    api.sendMessage(`⏳ | جارِ إرسال الرسالة إلى ${filteredThreads.length} مجموعة...`, threadID);
-
-    for (const thread of filteredThreads) {
-        try {
-            await api.sendMessage(formattedMessage, thread.threadID);
-            count++;
-            await new Promise(resolve => setTimeout(resolve, 1000)); // تأخير ثانية واحدة بين كل رسالة
-        } catch (error) {
-            console.error(`Failed to send message to thread ${thread.threadID}:`, error);
-        }
-    }
-
-    api.sendMessage(`✅ | تم إرسال الرسالة بنجاح إلى ${count} مجموعة.`, threadID);
+    api.sendMessage(
+      `حدث خطأ: ${error.message}`,
+      event.threadID,
+      event.messageID
+    );
+  }
 };
