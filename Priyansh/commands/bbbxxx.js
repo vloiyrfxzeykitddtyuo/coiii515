@@ -46,6 +46,13 @@ module.exports.run = async function({ api, event }) {
 14-يمنع ارسال الصور الشخصية : تحذير يلحقه خصم نقاط
 `;
 
-    const imageUrl = "https://up6.cc/2025/01/17380993985011.jpg"; // ضع رابط الصورة هنا
-    api.sendMessage({ body: rules, attachment: await api.getFile(imageUrl) }, event.threadID);
+    const imageUrl = "https://up6.cc/2025/01/17380993985011.jpg";
+
+    // Send image first
+    await api.sendMessage({
+        attachment: await global.utils.getStreamFromURL(imageUrl)
+    }, event.threadID);
+
+    // Then send rules text
+    await api.sendMessage(rules, event.threadID);
 };
