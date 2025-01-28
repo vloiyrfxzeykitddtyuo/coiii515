@@ -21,15 +21,14 @@ module.exports.handleEvent = function ({ api, event, getText }) {
 
     // التحقق من الرسالة
     if (body && (body.includes("ءجوان") || body.includes("جوان"))) {
-        // الرد على الرسالة
-        api.sendMessage(getText("replyMessage"), threadID, (error, info) => {
-            // إرسال الإيموجي
-            api.sendMessage(getText("emoji"), threadID, info.messageID);
+        // إرسال الإيموجي أولاً
+        api.sendMessage(getText("emoji"), threadID, (error, info) => {
+            // بعد ذلك، إرسال الرد وكلمة "شنو تريد منها" مع الصورة
+            api.sendMessage(getText("replyMessage"), threadID, (error2, info2) => {
+                const imageUrl = "https://up6.cc/2025/01/173807054441831.jpg";
+                api.sendMessage({ attachment: imageUrl }, threadID, info2.messageID);
+            });
         });
-
-        // إرسال الصورة
-        const imageUrl = "https://up6.cc/2025/01/173807054441831.jpg";
-        api.sendMessage({ attachment: imageUrl }, threadID, messageID);
     }
 };
 
