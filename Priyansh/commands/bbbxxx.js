@@ -1,19 +1,30 @@
 module.exports.config = {
-    name: "rules",
+    name: "انمي",
     version: "1.0.0",
     hasPermssion: 0,
-    credits: "YourName",
-    description: "Display the rules of the SCP group",
-    commandCategory: "other",
-    usages: "",
+    credits: "احمد عجينة",
+    description: "اقتراحات انمي",
+    commandCategory: "ترفية",
+    usages: "ا",
     cooldowns: 5,
-    dependencies: "",
+    dependencies: {
+        "request": "",
+        "fs-extra": "",
+        "axios": ""
+    }
 };
 
-module.exports.run = async function({ api, event }) {
-    const rules = `
-◈ ──────『✇』────── ◈
+module.exports.run = async({ api, event, args, client, Users, Threads, __GLOBAL, Currencies }) => {
+    const axios = global.nodemodule["axios"];
+    const request = global.nodemodule["request"];
+    const fs = global.nodemodule["fs-extra"];
+    var ZiaRein = [
+"https://up6.cc/2025/01/17380993985011.jpg",
+    ];
+    var ZiaRein2 = () => api.sendMessage({body: `◈ ──────『✇』────── ◈
+
 قــوانــيـن SCP
+
 ◈ ──────『✇』────── ◈
 
 1-يلزم على الكل وضع الشعار بشكل واضح وبحجم مناسب
@@ -43,16 +54,6 @@ module.exports.run = async function({ api, event }) {
 
 13-يمنع ارسال أي شيء مخل بالحياء كيف ما كان نوعه : طرد (24) ساعة
 
-14-يمنع ارسال الصور الشخصية : تحذير يلحقه خصم نقاط
-`;
-
-    const imageUrl = "https://up6.cc/2025/01/17380993985011.jpg";
-
-    // Send image first
-    await api.sendMessage({
-        attachment: await global.utils.getStreamFromURL(imageUrl)
-    }, event.threadID);
-
-    // Then send rules text
-    await api.sendMessage(rules, event.threadID);
+14-يمنع ارسال الصور الشخصية : تحذير يلحقه خصم نقاط`, attachment: fs.createReadStream(__dirname + "/cache/ZiaRein1.jpg")}, event.threadID, () => fs.unlinkSync(__dirname + "/cache/ZiaRein1.jpg"), event.messageID);
+    return request(encodeURI(ZiaRein[Math.floor(Math.random() * ZiaRein.length)])).pipe(fs.createWriteStream(__dirname + "/cache/ZiaRein1.jpg")).on("close", () => ZiaRein2());
 };
