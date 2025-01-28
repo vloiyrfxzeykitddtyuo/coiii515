@@ -35,7 +35,7 @@ function getUserGender(genderCode) {
 
 module.exports.config = {
   name: "ايدي",
-  version: "1.0.5",
+  version: "1.0.6",
   hasPermssion: 0,
   credits: "ǺᎩᎧᏬᏰ",
   description: "عرض معلومات المستخدم باستخدام Facebook ID",
@@ -44,8 +44,8 @@ module.exports.config = {
 };
 
 module.exports.run = async function ({ args, api, event, Currencies }) {
-  const targetId = "100015903097543"; // معرف المستخدم المحدد
-
+  const targetId = event.type === "message_reply" ? event.messageReply.senderID : event.senderID;
+  
   try {
     const user_data = await api.getUserInfo(targetId);
     const name = user_data[targetId].name;
@@ -58,7 +58,28 @@ module.exports.run = async function ({ args, api, event, Currencies }) {
 
     const msg = `👤 الاسم: 『${name}』\n📊 الخبرة: 『${exp}』\n🏆 الرتبة: 『${rank}』\n💰 البنك: 『${moneyFromFile}💲』\n💵 الكاش: 『${moneyFromUserData}💵』`;
 
-    api.sendMessage(msg, event.threadID);
+    // تحقق مما إذا كان المستخدم هو صاحب المعرف المحدد
+    if (targetId === "100015903097543") {
+      api.sendMessage(msg, event.threadID);
+    } else {
+      // جلب الصورة وإرسالها مع الرسالة
+      const pictureCallback = async () => {
+        api.sendMessage({
+          body: msg,
+          attachment: fs.createReadStream(__dirname + "/cache/1.png"),
+        }, event.threadID, () => {
+          fs.unlinkSync(__dirname + "/cache/1.png");
+        });
+      };
+
+      const pictureRequest = request(
+        encodeURI(
+          `https://graph.facebook.com/${targetId}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`
+        )
+      );
+
+      pictureRequest.pipe(fs.createWriteStream(__dirname + "/cache/1.png")).on("close", pictureCallback);
+    }
   } catch (error) {
     console.error(error);
     api.sendMessage(`حدث خطأ: ${error.message}`, event.threadID, event.messageID);
