@@ -6,7 +6,7 @@ module.exports.config = {
     description: "لعبة المارد الأزرق",
     commandCategory: "الألعاب",
     usages: "[بدء]",
-    cooldowns: 500
+    cooldowns: 5
 };
 
 const usersDemon = {};
