@@ -21,9 +21,9 @@ module.exports.handleEvent = function ({ api, event, getText }) {
 
     // التحقق من الرسالة
     if (body && (body.includes("ءجوان") || body.includes("جوان"))) {
-        // إرسال الإيموجي أولاً
+        // إرسال إيموجي الباندا
         api.sendMessage(getText("emoji"), threadID, (error, info) => {
-            // إرسال الرد وكلمة "شنو تريد منها" مع الصورة
+            // بعد ذلك، إرسال الرد وكلمة "شنو تريد منها" مع الصورة
             const imageUrl = "https://up6.cc/2025/01/173807054441831.jpg";
             api.sendMessage(
                 {
