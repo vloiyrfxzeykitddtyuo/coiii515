@@ -1,92 +1,36 @@
 module.exports.config = {
-  name: "antiUnsend",
+  name: "رصيدي",
   version: "1.0.0",
-  hasPermssion: 0,
-  credits: "Created by Claude",
-  description: "مراقبة الرسائل المحذوفة",
-  commandCategory: "النظام",
-  usages: "",
-  cooldowns: 0
+  permission: 0,
+  credits: "Assistant",
+  prefix: true,
+  description: "عرض الرصيد",
+  category: "المال",
+  cooldowns: 5
 };
 
-// تخزين الرسائل مؤقتاً
-const messageStorage = new Map();
+module.exports.run = async function({ event, api, args, client, Currencies, Users, utils, __GLOBAL }) {
+  const { threadID, messageID, senderID, mentions } = event;
 
-module.exports.handleEvent = async function({ api, event }) {
-  const { senderID, messageID, body, threadID } = event;
-  
-  // تخزين الرسالة عند إرسالها
-  if (event.type === "message" || event.type === "message_reply") {
-    const messageData = {
-      body: body,
-      senderID: senderID,
-      time: new Date().toLocaleString('ar-SA', {
-        timeZone: 'Asia/Riyadh',
-        year: 'numeric',
-        month: 'numeric',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: 'numeric',
-        second: 'numeric'
-      })
-    };
+  if (Object.keys(mentions).length == 0) {
+      // عرض رصيد المستخدم نفسه
+      const userMoney = (await Currencies.getData(senderID)).money;
+      const userName = (await Users.getData(senderID)).name;
+      return api.sendMessage(
+          `=== [ معلومات الرصيد ] ===\n━━━━━━━━━━━━━━━━━━\n[ 👤 ]➜ الاسم: ${userName}\n[ 💰 ]➜ الرصيد: ${userMoney} دولار\n━━━━━━━━━━━━━━━━━━`, 
+          threadID, messageID
+      );
+  } else {
+      // عرض رصيد الشخص المذكور
+      const mention = Object.keys(mentions)[0];
+      const targetMoney = (await Currencies.getData(mention)).money;
+      const targetName = (await Users.getData(mention)).name;
+      const userMoney = (await Currencies.getData(senderID)).money;
+      const userName = (await Users.getData(senderID)).name;
 
-    // تخزين المرفقات إذا وجدت
-    if (event.attachments && event.attachments.length > 0) {
-      messageData.attachments = event.attachments;
-    }
-
-    messageStorage.set(messageID, messageData);
-
-    // حذف الرسائل القديمة بعد ساعة للحفاظ على الذاكرة
-    setTimeout(() => {
-      messageStorage.delete(messageID);
-    }, 3600000); // ساعة واحدة
+      return api.sendMessage(
+          `=== [ معلومات الرصيد ] ===\n━━━━━━━━━━━━━━━━━━\n[ 👤 ]➜ رصيدك انت: ${userName}\n[ 💰 ]➜ رصيدك: ${userMoney} دولار\n\n[ 👥 ]➜ رصيد: ${targetName}\n[ 💰 ]➜ رصيده: ${targetMoney} دولار\n━━━━━━━━━━━━━━━━━━`,
+          threadID, messageID
+      );
   }
-
-  // التعامل مع حذف الرسالة
-  if (event.type === "message_unsend") {
-    const unsendMessage = messageStorage.get(messageID);
-    if (!unsendMessage) return;
-
-    try {
-      const userInfo = await api.getUserInfo(unsendMessage.senderID);
-      const userName = userInfo[unsendMessage.senderID].name;
-
-      let alertMsg = `⚠️ تنبيه حذف رسالة!\n\n`;
-      alertMsg += `👤 المستخدم: ${userName}\n`;
-      alertMsg += `⏰ وقت الحذف: ${new Date().toLocaleString('ar-SA', {
-        timeZone: 'Asia/Riyadh',
-        year: 'numeric',
-        month: 'numeric',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: 'numeric',
-        second: 'numeric'
-      })}\n`;
-      alertMsg += `📝 محتوى الرسالة المحذوفة:\n${unsendMessage.body || "لا يوجد نص"}\n`;
-      alertMsg += `\n⚠️ الرجاء عدم حذف الرسائل بدون أخذ سكرين شوت`;
-
-      // إذا كانت الرسالة تحتوي على مرفقات
-      if (unsendMessage.attachments) {
-        alertMsg += `\n📎 الرسالة كانت تحتوي على مرفقات`;
-      }
-
-      // إرسال التنبيه كرد على الرسالة المحذوفة
-      api.sendMessage({
-        body: alertMsg,
-        mentions: [{
-          tag: userName,
-          id: unsendMessage.senderID
-        }]
-      }, threadID);
-
-    } catch (error) {
-      console.error(`خطأ في مراقب الرسائل المحذوفة: ${error.message}`);
-    }
-  }
-};
-
-module.exports.run = async function({ api, event }) {
-  // This run function can be empty as this is an event listener
-};
+}
