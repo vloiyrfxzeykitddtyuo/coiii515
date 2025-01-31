@@ -1,35 +1,59 @@
-const fs = require("fs");
-const { join } = require("path");
-
 module.exports.config = {
-  name: "كنية",
-  version: "1.0.0",
-  hasPermssion: 0,
-  credits: "ǺᎩᎧᏬᏰ",
-  description: "تغيير كنية المستخدم",
-  commandCategory: "🎮 الألعاب 🎮",
-  cooldowns: 5,
+    name: "nickname_monitor",
+    version: "1.0.0",
+    hasPermssion: 0,
+    credits: "ǺᎩᎧᏬᏰ",
+    description: "مراقبة تغييرات الكنية في المجموعة",
+    commandCategory: "النظام",
+    usages: "",
+    cooldowns: 0
 };
 
-module.exports.run = async function ({ args, api, event, Currencies }) {
-  const pathData = join(__dirname, 'banking', 'banking.json');
-  const userData = JSON.parse(fs.readFileSync(pathData, 'utf8'));
+module.exports.run = async({ event, api }) => {
+    // This run function can be empty as this is an event listener
+};
 
-  const targetID = event.type === "message_reply" ? event.messageReply.senderID : event.senderID;
-  const newNickname = args.join(" ");
+module.exports.handleEvent = async({ event, api }) => {
+    const { logMessageType, logMessageData, timestamp, threadID } = event;
 
-  // إيجاد المستخدم في البيانات
-  const user = userData.find(user => user.senderID === targetID);
-  if (!user) {
-    return api.sendMessage("لا يمكن العثور على المستخدم في البيانات", event.threadID, event.messageID);
-  }
+    // التحقق من أن الحدث هو تغيير كنية
+    if (logMessageType === "log:nickname") {
+        const date = new Date(timestamp * 1000);
+        const formatter = new Intl.DateTimeFormat('ar-SA', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+        });
 
-  // تحديث الكنية الجديدة
-  const oldNickname = user.nickname;
-  user.nickname = newNickname;
-  fs.writeFileSync(pathData, JSON.stringify(userData, null, 2));
+        const formattedDate = formatter.format(date);
+        
+        // جلب معلومات المستخدم الذي قام بالتغيير
+        const changerInfo = await api.getUserInfo(logMessageData.author);
+        const changerName = changerInfo[logMessageData.author].name;
 
-  // إرسال رسالة في المجموعة
-  const message = `🔰 تم تغيير كنية المستخدم:\n\n👤 اسم المستخدم: ${event.userName}\n📋 الكنية القديمة: ${oldNickname}\n📌 الكنية الجديدة: ${newNickname}\n⏱️ الوقت: ${new Date().toLocaleString()}`;
-  api.sendMessage(message, event.threadID);
+        // جلب معلومات المستخدم الذي تم تغيير كنيته
+        const targetInfo = await api.getUserInfo(logMessageData.participant);
+        const targetName = targetInfo[logMessageData.participant].name;
+
+        let msg = "⚠️ تنبيه تغيير الكنية ⚠️\n\n";
+        msg += `👤 قام: ${changerName}\n`;
+        msg += `📝 بتغيير كنية: ${targetName}\n`;
+        msg += `📌 الكنية الجديدة: ${logMessageData.nickname || "إزالة الكنية"}\n`;
+        msg += `🕐 التاريخ والوقت: ${formattedDate}`;
+
+        // إرسال رسالة الإشعار
+        api.sendMessage(msg, threadID);
+    }
+};
+
+module.exports.handleReply = async({ api, event, handleReply }) => {
+    // This handleReply function can be empty as we're not handling replies
+};
+
+module.exports.handleReaction = async({ api, event, handleReaction }) => {
+    // This handleReaction function can be empty as we're not handling reactions
 };
