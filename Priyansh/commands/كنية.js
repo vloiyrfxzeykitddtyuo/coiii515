@@ -1,5 +1,5 @@
 module.exports.config = {
-  name: "لورد",
+  name: "رصيدي",
   version: "1.0.0",
   permission: 0,
   credits: "Assistant",
@@ -9,22 +9,25 @@ module.exports.config = {
   cooldowns: 5
 };
 
-module.exports.run = async function({ event, api, args, Currencies, Users }) {
+module.exports.run = async function({ event, api, Currencies, Users }) {
   const { threadID, messageID, senderID, mentions } = event;
 
   try {
-    let targetId = senderID;
+    // تحديد معرف المستخدم الهدف
+    const targetId = Object.keys(mentions).length > 0 ? Object.keys(mentions)[0] : senderID;
 
-    if (Object.keys(mentions).length > 0) {
-      targetId = Object.keys(mentions)[0]; // إذا كان هناك شخص مذكور
-    }
-
+    // جلب معلومات المستخدم
     const userData = await api.getUserInfo(targetId);
-    const userName = userData[targetId].name;
-    const userMoney = (await Currencies.getData(targetId)).money || 0;
+    const userName = userData[targetId] ? userData[targetId].name : "غير معروف";
+    
+    // جلب الرصيد للمستخدم الهدف
+    const userMoneyData = await Currencies.getData(targetId);
+    const userMoney = userMoneyData.money || 0;
 
+    // بناء الرسالة
     const msg = `=== [ معلومات الرصيد ] ===\n━━━━━━━━━━━━━━━━━━\n[ 👤 ]➜ الاسم: ${userName}\n[ 💰 ]➜ الرصيد: ${userMoney} دولار\n━━━━━━━━━━━━━━━━━━`;
 
+    // إرسال الرسالة
     api.sendMessage(msg, threadID, messageID);
   } catch (error) {
     console.error(error);
