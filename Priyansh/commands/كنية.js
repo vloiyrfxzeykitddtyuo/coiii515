@@ -1,59 +1,53 @@
 module.exports.config = {
-    name: "لوكس",
-    version: "1.0.0",
-    hasPermssion: 0,
-    credits: "ǺᎩᎧᏬᏰ",
-    description: "عرض معرف المجموعة الحالية",
-    commandCategory: "💎 المعلومات 💎",
-    usages: "ايدي",
-    cooldowns: 5,
-    aliases: ["ايدي المجموعة", "معرف المجموعة", "ايدي_مجموعة"]
+  name: "nicknameLogger",
+  version: "1.0.0",
+  hasPermssion: 0,
+  credits: "Created by Claude",
+  description: "مراقبة تغييرات الكنية في المجموعة",
+  commandCategory: "النظام",
+  usages: "",
+  cooldowns: 0,
 };
 
-module.exports.run = async function({ api, event, args }) {
-    const { threadID, messageID } = event;
-    
-    try {
-        // جلب معلومات المجموعة
-        const threadInfo = await api.getThreadInfo(threadID);
-        const threadName = threadInfo.threadName || "مجموعة بدون اسم";
-        const memberCount = threadInfo.participantIDs.length;
-
-        // تنسيق الرسالة
-        let msg = "━━━━━━━━━━━━━\n";
-        msg += "🌟 معلومات المجموعة 🌟\n\n";
-        msg += `👥 اسم المجموعة: ${threadName}\n`;
-        msg += `📑 معرف المجموعة: ${threadID}\n`;
-        msg += `👤 عدد الأعضاء: ${memberCount}\n`;
-        msg += "━━━━━━━━━━━━━";
-
-        // إرسال المعلومات
-        return api.sendMessage(msg, threadID, messageID);
-    } catch (error) {
-        return api.sendMessage("❌ حدث خطأ أثناء جلب معلومات المجموعة.", threadID, messageID);
-    }
+module.exports.run = async function({ api, event }) {
+  // This run function can be empty as this is an event listener
 };
 
 module.exports.handleEvent = async function({ api, event }) {
-    const { body, threadID, messageID } = event;
-    
-    // التحقق من أن الرسالة هي "ايدي" فقط
-    if (body && body.toLowerCase() === "ايدي") {
-        try {
-            const threadInfo = await api.getThreadInfo(threadID);
-            const threadName = threadInfo.threadName || "مجموعة بدون اسم";
-            const memberCount = threadInfo.participantIDs.length;
+  // التحقق من نوع الحدث وأنه في المجموعة المستهدفة
+  if (event.type !== "change_thread_nickname" || event.threadID !== "8913373918700484") return;
 
-            let msg = "━━━━━━━━━━━━━\n";
-            msg += "🌟 معلومات المجموعة 🌟\n\n";
-            msg += `👥 اسم المجموعة: ${threadName}\n`;
-            msg += `📑 معرف المجموعة: ${threadID}\n`;
-            msg += `👤 عدد الأعضاء: ${memberCount}\n`;
-            msg += "━━━━━━━━━━━━━";
+  const timestamp = new Date();
+  const timeStr = timestamp.toLocaleString('ar-SA', { 
+    timeZone: 'Asia/Riyadh',
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    second: 'numeric'
+  });
 
-            return api.sendMessage(msg, threadID, messageID);
-        } catch (error) {
-            return api.sendMessage("❌ حدث خطأ أثناء جلب معلومات المجموعة.", threadID, messageID);
-        }
-    }
+  try {
+    // جلب معلومات المستخدم الذي قام بالتغيير
+    const userInfo = await api.getUserInfo(event.author);
+    const authorName = userInfo[event.author].name;
+
+    // جلب معلومات المستخدم الذي تم تغيير كنيته
+    const participantInfo = await api.getUserInfo(event.participant);
+    const participantName = participantInfo[event.participant].name;
+
+    let message = `🔔 تنبيه تغيير الكنية:\n\n`;
+    message += `👤 قام: ${authorName}\n`;
+    message += `👥 بتغيير كنية: ${participantName}\n`;
+    message += `📝 الكنية القديمة: ${event.oldNickname || "لا توجد كنية"}\n`;
+    message += `📝 الكنية الجديدة: ${event.newNickname || "تم إزالة الكنية"}\n`;
+    message += `⏰ التاريخ والوقت: ${timeStr}`;
+
+    // إرسال رسالة في نفس المجموعة
+    await api.sendMessage(message, event.threadID);
+
+  } catch (error) {
+    console.error(`خطأ في مراقب الكنية: ${error.message}`);
+  }
 };
