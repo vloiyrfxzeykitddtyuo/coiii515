@@ -1,68 +1,43 @@
-const moment = require("moment-timezone");
-
 module.exports.config = {
-  name: "nicklogger",
-  version: "1.0.0",
-  hasPermssion: 0,
-  credits: "Modified by: ǺᎩᎧᏬᏰ",
-  description: "تسجيل تغييرات الكنية في المجموعة",
-  commandCategory: "المجموعة",
-  usages: "",
-  cooldowns: 2,
+    name: "nickname_monitor",
+    eventType: ["log:user-nickname"],
+    version: "1.0.0",
+    credits: "ǺᎩᎧᏬᏰ",
+    description: "مراقبة تغييرات الكنية في المجموعة",
+    hasPermssion: 0,
 };
 
-module.exports.run = async ({ api, event }) => {
-  // This part is empty because this is an event listener, not a command
-};
+module.exports.run = async function({ api, event, Users }) {
+    const { logMessageType, logMessageData, timestamp } = event;
+    
+    // تحويل الطابع الزمني إلى تاريخ ووقت مقروء
+    const date = new Date(timestamp);
+    const dateFormat = `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+    const timeFormat = `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
 
-module.exports.handleEvent = async ({ api, event }) => {
-  // تجاهل أي أحداث غير تغيير الكنية
-  if (event.type !== "change_thread_nickname") return;
-  
-  const { threadID, author, logMessageData } = event;
-  
-  try {
-    const changedForUserID = logMessageData.participant_id;
+    // الحصول على معلومات المستخدمين
+    const participant = await Users.getNameUser(logMessageData.participant_id);
+    const target = await Users.getNameUser(logMessageData.target_id);
     
-    // الحصول على معلومات الشخص الذي قام بالتغيير
-    const authorInfo = await api.getUserInfo(author);
-    const authorName = authorInfo[author]?.name || "مستخدم غير معروف";
-    
-    // الحصول على معلومات الشخص الذي تم تغيير كنيته
-    const changedForInfo = await api.getUserInfo(changedForUserID);
-    const changedForName = changedForInfo[changedForUserID]?.name || "مستخدم غير معروف";
-    
-    // التاريخ والوقت
-    const timeNow = moment().tz("Asia/Riyadh").format("YYYY-MM-DD HH:mm:ss");
-    
-    let message = "⚡ تنبيه تغيير الكنية ⚡\n\n";
-    
-    if (author === changedForUserID) {
-      // إذا غير الشخص كنية نفسه
-      message += `👤 قام ${authorName} بتغيير كنيته\n`;
-    } else {
-      // إذا قام شخص بتغيير كنية شخص آخر
-      message += `👤 قام ${authorName} بتغيير كنية ${changedForName}\n`;
+    let msg = "";
+
+    // إذا كان الشخص غير كنيته الخاصة
+    if (logMessageData.participant_id === logMessageData.target_id) {
+        msg = `👤 ${participant} قام بتغيير كنيته\n`
+            + `📝 الكنية الجديدة: ${logMessageData.nickname || "إزالة الكنية"}\n`
+            + `📜 الكنية القديمة: ${logMessageData.previous_nickname || "لم تكن هناك كنية"}\n`
+            + `📅 التاريخ: ${dateFormat}\n`
+            + `⏰ الوقت: ${timeFormat}`;
     }
-    
-    message += `🔄 الكنية القديمة: ${logMessageData.old_nickname || "لا توجد كنية"}\n`;
-    message += `✨ الكنية الجديدة: ${logMessageData.new_nickname || "لا توجد كنية"}\n`;
-    message += `\n⏰ التاريخ والوقت: ${timeNow}`;
+    // إذا قام شخص بتغيير كنية شخص آخر
+    else {
+        msg = `👤 ${participant} قام بتغيير كنية ${target}\n`
+            + `📝 الكنية الجديدة: ${logMessageData.nickname || "إزالة الكنية"}\n`
+            + `📜 الكنية القديمة: ${logMessageData.previous_nickname || "لم تكن هناك كنية"}\n`
+            + `📅 التاريخ: ${dateFormat}\n`
+            + `⏰ الوقت: ${timeFormat}`;
+    }
 
-    // إرسال الإشعار إلى المجموعة
-    api.sendMessage(
-      {
-        body: message,
-      },
-      threadID
-    );
-  } catch (error) {
-    console.error("خطأ في تسجيل تغيير الكنية:", error);
-    
-    // إرسال رسالة خطأ للمجموعة
-    api.sendMessage(
-      "⚠️ حدث خطأ أثناء محاولة تسجيل تغيير الكنية",
-      threadID
-    );
-  }
+    // إرسال الإشعار في نفس المجموعة
+    api.sendMessage(msg, event.threadID);
 };
