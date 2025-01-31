@@ -9,28 +9,25 @@ module.exports.config = {
   cooldowns: 5
 };
 
-module.exports.run = async function({ event, api, args, client, Currencies, Users, utils, __GLOBAL }) {
+module.exports.run = async function({ event, api, args, Currencies, Users }) {
   const { threadID, messageID, senderID, mentions } = event;
 
-  if (Object.keys(mentions).length == 0) {
-      // عرض رصيد المستخدم نفسه
-      const userMoney = (await Currencies.getData(senderID)).money;
-      const userName = (await Users.getData(senderID)).name;
-      return api.sendMessage(
-          `=== [ معلومات الرصيد ] ===\n━━━━━━━━━━━━━━━━━━\n[ 👤 ]➜ الاسم: ${userName}\n[ 💰 ]➜ الرصيد: ${userMoney} دولار\n━━━━━━━━━━━━━━━━━━`, 
-          threadID, messageID
-      );
-  } else {
-      // عرض رصيد الشخص المذكور
-      const mention = Object.keys(mentions)[0];
-      const targetMoney = (await Currencies.getData(mention)).money;
-      const targetName = (await Users.getData(mention)).name;
-      const userMoney = (await Currencies.getData(senderID)).money;
-      const userName = (await Users.getData(senderID)).name;
+  try {
+    let targetId = senderID;
 
-      return api.sendMessage(
-          `=== [ معلومات الرصيد ] ===\n━━━━━━━━━━━━━━━━━━\n[ 👤 ]➜ رصيدك انت: ${userName}\n[ 💰 ]➜ رصيدك: ${userMoney} دولار\n\n[ 👥 ]➜ رصيد: ${targetName}\n[ 💰 ]➜ رصيده: ${targetMoney} دولار\n━━━━━━━━━━━━━━━━━━`,
-          threadID, messageID
-      );
+    if (Object.keys(mentions).length > 0) {
+      targetId = Object.keys(mentions)[0]; // إذا كان هناك شخص مذكور
+    }
+
+    const userData = await api.getUserInfo(targetId);
+    const userName = userData[targetId].name;
+    const userMoney = (await Currencies.getData(targetId)).money || 0;
+
+    const msg = `=== [ معلومات الرصيد ] ===\n━━━━━━━━━━━━━━━━━━\n[ 👤 ]➜ الاسم: ${userName}\n[ 💰 ]➜ الرصيد: ${userMoney} دولار\n━━━━━━━━━━━━━━━━━━`;
+
+    api.sendMessage(msg, threadID, messageID);
+  } catch (error) {
+    console.error(error);
+    api.sendMessage(`حدث خطأ: ${error.message}`, threadID, messageID);
   }
-}
+};
