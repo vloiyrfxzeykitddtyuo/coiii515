@@ -16,85 +16,107 @@ function formatNumber(number) {
   return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
-function getTopUsers(stats, type, limit = 5) {
-  const sortedUsers = Object.entries(stats)
-    .sort(([, a], [, b]) => b[type] - a[type])
-    .slice(0, limit);
-  return sortedUsers;
-}
-
-async function getThreadInfo(api, threadID) {
+module.exports.run = async function({ api, event }) {
+  const threadID = event.threadID;
+  
   try {
+    // جلب معلومات المجموعة
     const threadInfo = await api.getThreadInfo(threadID);
     const participantIDs = threadInfo.participantIDs;
-    const userInfo = await api.getUserInfo(participantIDs);
-
-    // تجميع إحصائيات المستخدمين
-    const stats = {};
-    threadInfo.userInfo.forEach(user => {
-      stats[user.id] = {
-        name: user.name,
-        messages: 0,
-        reactions: 0
-      };
-    });
-
-    // حساب عدد الرسائل والتفاعلات
-    if (threadInfo.messageCount) {
-      Object.values(threadInfo.messageCount).forEach(count => {
-        if (stats[count.id]) {
-          stats[count.id].messages = count.count;
-        }
-      });
+    
+    // جلب معلومات المستخدمين
+    let userInfo = {};
+    try {
+      userInfo = await api.getUserInfo(participantIDs);
+    } catch (e) {
+      console.error("خطأ في جلب معلومات المستخدمين:", e);
     }
 
-    // الحصول على أكثر المستخدمين نشاطاً
-    const topActive = getTopUsers(stats, 'messages')
-      .map(([id, data], index) => `${index + 1}. ${data.name}: ${formatNumber(data.messages)} رسالة`)
+    // إحصائيات الرسائل
+    let messageStats = {};
+    if (threadInfo.messageCount) {
+      for (const id in threadInfo.messageCount) {
+        messageStats[id] = threadInfo.messageCount[id];
+      }
+    }
+
+    // ترتيب المستخدمين حسب عدد الرسائل
+    let topUsers = Object.entries(messageStats)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5)
+      .map(([id, count], index) => {
+        const name = userInfo[id] ? userInfo[id].name : "مستخدم غير معروف";
+        return `${index + 1}. ${name}: ${formatNumber(count)} رسالة`;
+      })
       .join('\n');
 
-    const adminList = threadInfo.adminIDs.map(admin => userInfo[admin.id].name).join('، ');
+    // تجميع قائمة المشرفين
+    let adminList = "";
+    try {
+      if (threadInfo.adminIDs) {
+        adminList = threadInfo.adminIDs
+          .map(admin => userInfo[admin.id] ? userInfo[admin.id].name : "مشرف غير معروف")
+          .join('، ');
+      }
+    } catch (e) {
+      adminList = "غير متوفر";
+    }
 
     const infoMessage = `
-╭──────────────────╮
-│    📊 معلومات المجموعة 📊    │
-╰──────────────────╯
+╭────────❍
+│ 📊 معلومات المجموعة
+├────────❍
+│ 👥 اسم المجموعة: ${threadInfo.threadName || "غير متوفر"}
+│ 👤 عدد الأعضاء: ${formatNumber(participantIDs.length)}
+│ 📈 المضافين: ${formatNumber(threadInfo.approvalQueue ? threadInfo.approvalQueue.length : 0)}
+│ 📉 المغادرين: ${formatNumber(threadInfo.messageCount || 0)}
+│ 💬 عدد الرسائل: ${formatNumber(threadInfo.messageCount || 0)}
+├────────❍
+│ 👑 المشرفين:
+│ ${adminList || "لا يوجد"}
+├────────❍
+│ 🏆 الأكثر نشاطاً:
+│ ${topUsers || "لا توجد إحصائيات"}
+├────────❍
+│ ⚙️ إعدادات المجموعة:
+│ 🔐 وضع الموافقة: ${threadInfo.approvalMode ? "✅" : "❌"}
+│ 🎮 الألعاب: ${threadInfo.isGroup ? "✅" : "❌"}
+╰────────❍`;
 
-👥 اسم المجموعة: ${threadInfo.threadName}
-👤 عدد الأعضاء: ${formatNumber(participantIDs.length)}
-📈 إجمالي الأعضاء المضافين: ${formatNumber(threadInfo.approvalMode ? threadInfo.approvalQueue.length : 0)}
-📉 عدد المغادرين: ${formatNumber(threadInfo.memberLeaveCount || 0)}
-💬 عدد الرسائل: ${formatNumber(threadInfo.messageCount)}
-👑 المشرفين: ${adminList}
-
-🏆 الأكثر نشاطاً:
-${topActive}
-
-⚙️ إعدادات المجموعة:
-🔐 وضع الموافقة: ${threadInfo.approvalMode ? "مفعل" : "معطل"}
-🎮 الألعاب: ${threadInfo.isGroup ? "مسموحة" : "غير مسموحة"}
-`;
-
-    // تحميل وإرسال صورة المجموعة مع المعلومات
+    // إرسال صورة المجموعة مع المعلومات
     if (threadInfo.imageSrc) {
       const imgPath = join(__dirname, "cache", "groupImage.png");
-      request(threadInfo.imageSrc).pipe(fs.createWriteStream(imgPath)).on("close", () => {
-        api.sendMessage({
-          body: infoMessage,
-          attachment: fs.createReadStream(imgPath)
-        }, threadID, () => fs.unlinkSync(imgPath));
-      });
+      
+      request(threadInfo.imageSrc)
+        .pipe(fs.createWriteStream(imgPath))
+        .on("close", () => {
+          api.sendMessage(
+            {
+              body: infoMessage,
+              attachment: fs.createReadStream(imgPath)
+            },
+            threadID,
+            (error, info) => {
+              if (error) {
+                api.sendMessage("❌ حدث خطأ في إرسال الصورة", threadID);
+                console.error(error);
+              }
+              if (fs.existsSync(imgPath)) {
+                fs.unlinkSync(imgPath);
+              }
+            }
+          );
+        })
+        .on("error", (err) => {
+          console.error("خطأ في تحميل الصورة:", err);
+          api.sendMessage(infoMessage, threadID);
+        });
     } else {
       api.sendMessage(infoMessage, threadID);
     }
 
   } catch (error) {
-    console.error(error);
-    api.sendMessage(`⚠️ حدث خطأ: ${error.message}`, threadID);
+    console.error("خطأ رئيسي:", error);
+    api.sendMessage("⚠️ عذراً، حدث خطأ أثناء جلب معلومات المجموعة", threadID);
   }
-}
-
-module.exports.run = async function({ api, event }) {
-  await getThreadInfo(api, event.threadID);
 };
-
