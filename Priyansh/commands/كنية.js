@@ -1,36 +1,58 @@
 module.exports.config = {
-  name: "رصيدي",
-  version: "1.0.0",
-  permission: 0,
-  credits: "Assistant",
-  prefix: true,
-  description: "عرض الرصيد",
-  category: "المال",
-  cooldowns: 5
+    name: "مراقبة",
+    version: "1.0.0",
+    hasPermssion: 0,
+    credits: "Modified by Claude",
+    description: "مراقبة تغييرات كنيات الأعضاء",
+    commandCategory: "المجموعة",
+    usages: "مراقبة",
+    cooldowns: 5,
+    dependencies: {
+        "request": "",
+        "fs-extra": "",
+        "axios": ""
+    }
 };
 
-module.exports.run = async function({ event, api, Currencies, Users }) {
-  const { threadID, messageID, senderID, mentions } = event;
+module.exports.handleEvent = async function({ api, event }) {
+    if (event.type === "change_thread_nickname") {
+        const { threadID, author, participantIDs, nickname } = event;
+        
+        // Get user info
+        const userInfo = await api.getUserInfo(author);
+        const authorName = userInfo[author].name;
+        
+        // Get changed user info
+        const changedUserInfo = await api.getUserInfo(participantIDs[0]);
+        const changedUserName = changedUserInfo[participantIDs[0]].name;
 
-  try {
-    // تحديد معرف المستخدم الهدف
-    const targetId = Object.keys(mentions).length > 0 ? Object.keys(mentions)[0] : senderID;
+        let msg = "";
+        if (!nickname) {
+            msg = `🔔 تنبيه: قام ${authorName} بحذف كنية ${changedUserName}`;
+        } else {
+            msg = `🔔 تنبيه: قام ${authorName} بتغيير كنية ${changedUserName} إلى: ${nickname}`;
+        }
 
-    // جلب معلومات المستخدم
-    const userData = await api.getUserInfo(targetId);
-    const userName = userData[targetId] ? userData[targetId].name : "غير معروف";
+        const alertImage = "https://up6.cc/2025/02/173843076665791.jpg"; // Alert icon image
+        
+        let stream = await global.utils.getStreamFromURL(alertImage);
+        api.sendMessage({
+            body: msg,
+            attachment: stream
+        }, threadID);
+    }
+};
+
+module.exports.run = async function({ api, event }) {
+    const { threadID } = event;
     
-    // جلب الرصيد للمستخدم الهدف
-    const userMoneyData = await Currencies.getData(targetId);
-    const userMoney = userMoneyData.money || 0;
-
-    // بناء الرسالة
-    const msg = `=== [ معلومات الرصيد ] ===\n━━━━━━━━━━━━━━━━━━\n[ 👤 ]➜ الاسم: ${userName}\n[ 💰 ]➜ الرصيد: ${userMoney} دولار\n━━━━━━━━━━━━━━━━━━`;
-
-    // إرسال الرسالة
-    api.sendMessage(msg, threadID, messageID);
-  } catch (error) {
-    console.error(error);
-    api.sendMessage(`حدث خطأ: ${error.message}`, threadID, messageID);
-  }
+    // Activation message
+    const activationMsg = "✅ تم تفعيل نظام مراقبة كنيات الأعضاء في المجموعة";
+    const alertImage = "https://up6.cc/2025/02/173843076665791.jpg"; // Alert icon image
+    
+    let stream = await global.utils.getStreamFromURL(alertImage);
+    return api.sendMessage({
+        body: activationMsg,
+        attachment: stream
+    }, threadID);
 };
