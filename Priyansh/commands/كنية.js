@@ -1,76 +1,51 @@
 module.exports.config = {
-    name: "مراقبة",
+    name: "مراقبة كنيات",
     version: "1.0.0",
     hasPermssion: 0,
-    credits: "Modified by Claude",
-    description: "مراقبة كنيات الاعضاء",
-    commandCategory: "المجموعة",
-    usages: "مراقبة",
+    credits: "احمد عجينة",
+    description: "مراقبة كنيات الأعضاء في المجموعة",
+    commandCategory: "ترفية",
+    usages: "مراقبة البوت",
     cooldowns: 5,
     dependencies: {
-        "request": "",
         "fs-extra": "",
         "axios": ""
     }
 };
 
-let nicknameMonitoring = new Map();
-
-module.exports.run = async({ api, event, args, client, Users, Threads, __GLOBAL, Currencies }) => {
-    const axios = global.nodemodule["axios"];
-    const request = global.nodemodule["request"];
+module.exports.run = async({ api, event, Users }) => {
     const fs = global.nodemodule["fs-extra"];
+    const axios = global.nodemodule["axios"];
     
-    const threadID = event.threadID;
-    
-    if (!nicknameMonitoring.has(threadID)) {
-        nicknameMonitoring.set(threadID, true);
+    if (event.body === "مراقبة البوت") {
+        // إعداد قائمة لتخزين الكنيات الحالية
+        let currentNicknames = {};
         
-        // إرسال رسالة التأكيد مع الصورة
-        var message = {
-            body: "✅ تم تفعيل مراقبة كنيات الأعضاء في هذه المجموعة",
-            attachment: fs.createReadStream(__dirname + "/cache/monitor.jpg")
-        }
+        // إرسال رسالة التأكيد
+        api.sendMessage({
+            body: `تم تفعيل مراقبة كنيات الأعضاء. رابط الصورة: https://up6.cc/2025/02/173843076665791.jpg`
+        }, event.threadID, event.messageID);
         
-        // تحميل الصورة وإرسال الرسالة
-        request("https://up6.cc/2025/02/173843076665791.jpg")
-            .pipe(fs.createWriteStream(__dirname + "/cache/monitor.jpg"))
-            .on("close", () => {
-                api.sendMessage(message, threadID, () => {
-                    fs.unlinkSync(__dirname + "/cache/monitor.jpg");
-                });
-            });
+        // مراقبة الكنيات
+        const checkNicknames = async () => {
+            const threadInfo = await api.getThreadInfo(event.threadID);
+            const members = threadInfo.participantIDs;
             
-        // إضافة مستمع لمراقبة تغييرات الكنية
-        api.listenMqtt((err, event) => {
-            if (event.type === "event" && event.logMessageType === "log:user-nickname") {
-                const { threadID, author, logMessageData } = event;
+            for (const memberID of members) {
+                const userInfo = await Users.getInfo(memberID);
+                const nickname = userInfo[memberID].nickname || userInfo[memberID].fullName;
                 
-                if (nicknameMonitoring.get(threadID)) {
-                    const changedFor = logMessageData.participant_id;
-                    const newNickname = logMessageData.nickname || "حذف الكنية";
-                    
-                    api.getUserInfo([author, changedFor], (err, users) => {
-                        if (err) return;
-                        
-                        const authorName = users[author].name;
-                        const targetName = users[changedFor].name;
-                        
-                        let msg = `⚠️ تنبيه تغيير كنية:\n`;
-                        msg += `👤 المستخدم: ${authorName}\n`;
-                        if (author === changedFor) {
-                            msg += `📝 قام بتغيير كنيته إلى: ${newNickname}`;
-                        } else {
-                            msg += `📝 قام بتغيير كنية ${targetName} إلى: ${newNickname}`;
-                        }
-                        
-                        api.sendMessage(msg, threadID);
-                    });
+                // التحقق من التغييرات
+                if (currentNicknames[memberID] !== nickname) {
+                    currentNicknames[memberID] = nickname;
+                    api.sendMessage({
+                        body: `تم تغيير كنية العضو: ${nickname}`
+                    }, event.threadID);
                 }
             }
-        });
-    } else {
-        nicknameMonitoring.delete(threadID);
-        api.sendMessage("❌ تم إيقاف مراقبة كنيات الأعضاء في هذه المجموعة", threadID);
+        };
+
+        // استدعاء دالة المراقبة بشكل دوري
+        setInterval(checkNicknames, 5000); // كل 5 ثوانٍ
     }
 };
