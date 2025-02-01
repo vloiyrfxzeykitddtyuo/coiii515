@@ -6,7 +6,7 @@ module.exports.config = {
     description: "تكرار الكلام مع إيموجي",
     commandCategory: "ترفية",
     usages: "قولي [الكلام]",
-    cooldowns: 10,
+    cooldowns: 1,
     dependencies: {
         "request": "",
         "fs-extra": "",
