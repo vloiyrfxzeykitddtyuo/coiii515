@@ -6,71 +6,54 @@ module.exports.config = {
     description: "عرض قائمة المغادرين",
     commandCategory: "المجموعة",
     usages: "ستاركس",
-    cooldowns: 5,
-    dependencies: {
-        "fs-extra": ""
-    }
+    cooldowns: 5
 };
 
-module.exports.run = async function ({ api, event, args }) {
-    const fs = global.nodemodule["fs-extra"];
-    const { threadID } = event;
-    
-    // قراءة سجل المغادرين من الملف إن وجد
-    let leftMembers = [];
-    try {
-        const path = __dirname + `/cache/left_${threadID}.json`;
-        if (fs.existsSync(path)) {
-            leftMembers = JSON.parse(fs.readFileSync(path));
-        }
-    } catch (error) {
-        console.error(error);
-    }
+let leftMembers = new Map(); // لتخزين المغادرين لكل مجموعة
 
-    if (leftMembers.length === 0) {
-        return api.sendMessage("لم يغادر أحد المجموعة حتى الآن.", threadID);
-    }
-
-    // تنسيق رسالة بأسماء المغادرين
-    let message = "📋 قائمة الأعضاء الذين غادروا المجموعة:\n\n";
-    leftMembers.forEach((member, index) => {
-        message += `${index + 1}. ${member.name} (${member.nickname || "بدون كنية"})\n`;
-    });
-
-    return api.sendMessage(message, threadID);
-};
-
-module.exports.handleEvent = async function({ api, event, Users }) {
-    const { logMessageData, threadID } = event;
-    
-    // التحقق من نوع الحدث (مغادرة العضو)
+module.exports.handleEvent = function({ api, event }) {
     if (event.logMessageType === "log:unsubscribe") {
-        const leftUserID = logMessageData.leftParticipantFbId;
+        const leftUserID = event.logMessageData.leftParticipantFbId;
+        const threadID = event.threadID;
         
-        try {
-            // الحصول على معلومات العضو المغادر
-            const userInfo = await Users.getInfo(leftUserID);
-            const name = userInfo.name || "مستخدم مجهول";
-            const nickname = await Users.getNickname(leftUserID, threadID) || null;
+        // تخزين معلومات المغادر
+        if (!leftMembers.has(threadID)) {
+            leftMembers.set(threadID, []);
+        }
+        
+        // الحصول على اسم المستخدم المغادر
+        api.getUserInfo(leftUserID, (err, userInfo) => {
+            if (err) return;
             
-            // حفظ معلومات المغادر
-            const path = __dirname + `/cache/left_${threadID}.json`;
-            let leftMembers = [];
+            const userName = userInfo[leftUserID].name || "عضو مجهول";
+            const currentTime = new Date().toLocaleString();
             
-            if (fs.existsSync(path)) {
-                leftMembers = JSON.parse(fs.readFileSync(path));
-            }
-            
-            leftMembers.push({
-                userID: leftUserID,
-                name: name,
-                nickname: nickname,
-                timeLeft: Date.now()
+            let threadMembers = leftMembers.get(threadID);
+            threadMembers.push({
+                name: userName,
+                time: currentTime
             });
             
-            fs.writeFileSync(path, JSON.stringify(leftMembers));
-        } catch (error) {
-            console.error(error);
-        }
+            leftMembers.set(threadID, threadMembers);
+        });
     }
+};
+
+module.exports.run = async function({ api, event }) {
+    const { threadID } = event;
+    
+    // التحقق من وجود مغادرين في المجموعة
+    if (!leftMembers.has(threadID) || leftMembers.get(threadID).length === 0) {
+        return api.sendMessage("⚠ لم يغادر أحد المجموعة حتى الآن.", threadID);
+    }
+
+    // إنشاء رسالة بقائمة المغادرين
+    const members = leftMembers.get(threadID);
+    let message = "📋 قائمة الأعضاء الذين غادروا المجموعة:\n\n";
+    
+    members.forEach((member, index) => {
+        message += `${index + 1}. ${member.name}\n└─ غادر في: ${member.time}\n\n`;
+    });
+
+    api.sendMessage(message, threadID);
 };
