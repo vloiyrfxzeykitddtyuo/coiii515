@@ -21,7 +21,7 @@ module.exports.run = async({ api, event, args, client, Users, Threads, __GLOBAL,
     var ZiaRein = [
 "https://c.top4top.io/p_3321gyhhl0.gif",
     ];
-    var ZiaRein2 = () => api.sendMessage({body: ♕|══━══━≼❈≽━══━══|♕
+    var message = `♕|══━══━≼❈≽━══━══|♕
    ⚜️ SUZY BOT ⚜️  
 ♕|══━══━≼❈≽━══━══
 ✦| قـائـمـة الأوامــر |✦
@@ -38,6 +38,8 @@ module.exports.run = async({ api, event, args, client, Users, Threads, __GLOBAL,
 ◈ البريفكس: سوزي
 ◈ الأوامر المتاحة: 0
 
-❈|════════════|❈, attachment: fs.createReadStream(dirname + "/cache/ZiaRein1.jpg")}, event.threadID, () => fs.unlinkSync(dirname + "/cache/ZiaRein1.jpg"), event.messageID);
+❈|════════════|❈`;
+
+    var ZiaRein2 = () => api.sendMessage({body: message, attachment: fs.createReadStream(__dirname + "/cache/ZiaRein1.jpg")}, event.threadID, () => fs.unlinkSync(__dirname + "/cache/ZiaRein1.jpg"), event.messageID);
     return request(encodeURI(ZiaRein[Math.floor(Math.random() * ZiaRein.length)])).pipe(fs.createWriteStream(__dirname + "/cache/ZiaRein1.jpg")).on("close", () => ZiaRein2());
 };
