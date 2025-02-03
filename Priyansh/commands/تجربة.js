@@ -1,3 +1,5 @@
+let userStars = 0; // متغير لتخزين عدد النجوم
+
 module.exports.config = {
     name: "روليت",
     version: "1.0.0", 
@@ -12,29 +14,23 @@ module.exports.config = {
 module.exports.run = async ({ api, event }) => {
     // Weighted rewards array with duplicates to adjust probabilities
     const rewards = [
-        // 0 stars (30% chance)
         { stars: 0, image: "https://up6.cc/2025/02/173860263417251.jpg" },
         { stars: 0, image: "https://up6.cc/2025/02/173860263417251.jpg" },
         { stars: 0, image: "https://up6.cc/2025/02/173860263417251.jpg" },
-        
-        // 10 stars (30% chance)
         { stars: 10, image: "https://up6.cc/2025/02/173860252686541.jpg" },
         { stars: 10, image: "https://up6.cc/2025/02/173860252686541.jpg" },
         { stars: 10, image: "https://up6.cc/2025/02/173860252686541.jpg" },
-        
-        // 50 stars (30% chance)
         { stars: 50, image: "https://up6.cc/2025/02/173860227037931.jpg" },
         { stars: 50, image: "https://up6.cc/2025/02/173860227037931.jpg" },
         { stars: 50, image: "https://up6.cc/2025/02/173860227037931.jpg" },
-        
-        // 100 stars (7% chance)
         { stars: 100, image: "https://up6.cc/2025/02/173860217509681.jpg" },
-        
-        // 500 stars (3% chance)
         { stars: 500, image: "https://up6.cc/2025/02/173860238892191.jpg" }
     ];
 
     const randomReward = rewards[Math.floor(Math.random() * rewards.length)];
+
+    // إضافة النجوم الفائزة إلى المتغير
+    userStars += randomReward.stars;
 
     const fs = global.nodemodule["fs-extra"];
     const axios = global.nodemodule["axios"];
@@ -52,9 +48,18 @@ module.exports.run = async ({ api, event }) => {
     const msg = {
         body: message,
         attachment: fs.createReadStream(__dirname + "/cache/roulette.jpg")
-    }
+    };
 
     api.sendMessage(msg, event.threadID, () => {
         fs.unlinkSync(__dirname + "/cache/roulette.jpg");
     });
-}
+};
+
+// وظيفة "نجومي" لعرض عدد النجوم
+module.exports.showStars = async ({ api, event }) => {
+    const userName = event.senderID; // يمكنك استبدال هذا برمز لجلب اسم المستخدم من فيسبوك إذا كان متاحًا
+
+    const message = `🎉 مرحبًا ${userName} 🎉\nلديك ${userStars} نجوم! ⭐`;
+
+    api.sendMessage(message, event.threadID);
+};
