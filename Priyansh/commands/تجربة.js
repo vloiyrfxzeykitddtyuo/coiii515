@@ -12,7 +12,6 @@ module.exports.config = {
 };
 
 module.exports.run = async ({ api, event }) => {
-    // Weighted rewards array with duplicates to adjust probabilities
     const rewards = [
         { stars: 0, image: "https://up6.cc/2025/02/173860263417251.jpg" },
         { stars: 0, image: "https://up6.cc/2025/02/173860263417251.jpg" },
@@ -62,4 +61,9 @@ module.exports.showStars = async ({ api, event }) => {
     const message = `🎉 مرحبًا ${userName} 🎉\nلديك ${userStars} نجوم! ⭐`;
 
     api.sendMessage(message, event.threadID);
+};
+
+// إضافة الأمر الجديد "نجومي"
+module.exports.config.commands = {
+    "نجومي": module.exports.showStars
 };
