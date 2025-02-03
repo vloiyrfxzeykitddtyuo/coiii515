@@ -1,48 +1,21 @@
 module.exports.config = {
-    name: "مراقبة الكنية",
+    name: "روليت",
     version: "1.0.0",
-    hasPermssion: 2, // تأكد من أن لديك التصريح المناسب
+    hasPermssion: 0,
     credits: "احمد عجينة",
-    description: "تنبيه عند تغيير كنية أحد الأعضاء",
-    commandCategory: "إدارة",
-    usages: "مراقبة الكنية",
+    description: "لعبة روليت للحصول على نجوم عشوائية",
+    commandCategory: "ترفيه",
+    usages: "روليت",
     cooldowns: 5
 };
 
+const starValues = [0, 10, 50, 500];
+
 module.exports.run = async ({ api, event }) => {
-    // يتم تخزين معرفات الأعضاء وكنياتهم
-    const members = {};
-    
-    // الحصول على قائمة الأعضاء في المجموعة
-    api.getThreadInfo(event.threadID, (err, info) => {
-        if (err) return console.error(err);
-        
-        info.participantIDs.forEach(memberId => {
-            members[memberId] = info.names[memberId];
-        });
+    const randomIndex = Math.floor(Math.random() * starValues.length);
+    const starsWon = starValues[randomIndex];
 
-        // مراقبة التغييرات
-        api.listen((event) => {
-            if (event.logMessageType === 'log:subscribe') {
-                const newMemberId = event.logMessageData.addedParticipants[0].userFBID;
-                const newMemberName = event.logMessageData.addedParticipants[0].fullName;
-                members[newMemberId] = newMemberName;
-            }
-            if (event.logMessageType === 'log:unsubscribe') {
-                const removedMemberId = event.logMessageData.leftParticipantFbId;
-                delete members[removedMemberId];
-            }
-            if (event.logMessageType === 'log:thread-name') {
-                const changedMemberId = event.logMessageData.senderFbId;
-                const oldName = members[changedMemberId];
-                const newName = event.logMessageData.threadName;
+    const responseMessage = `🎉 لقد حصلت على ${starsWon} نجمة! 🎉`;
 
-                if (oldName !== newName) {
-                    const notificationMessage = `تنبيه: تغيرت كنية ${oldName} إلى ${newName}.`;
-                    api.sendMessage(notificationMessage, event.threadID);
-                    members[changedMemberId] = newName; // تحديث الكنية
-                }
-            }
-        });
-    });
+    return api.sendMessage(responseMessage, event.threadID, event.messageID);
 };
