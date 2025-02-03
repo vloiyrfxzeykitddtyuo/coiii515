@@ -1,43 +1,31 @@
+const { DateTime } = require('luxon');
+
 module.exports.config = {
-    name: "الوقت",
+    name: "تاريخ",
     version: "1.0.0",
     hasPermssion: 0,
     credits: "احمد عجينة",
-    description: "عرض التاريخ والوقت",
-    commandCategory: "معلومات",
-    usages: "تاريخ_البوت",
+    description: "يعرض التاريخ والوقت الحالي بتوقيت العراق",
+    commandCategory: "ترفية",
+    usages: "تاريخ",
     cooldowns: 5,
     dependencies: {
-        "moment-hijri": "",
-        "moment-timezone": ""
+        "luxon": ""
     }
 };
 
 module.exports.run = async({ api, event }) => {
-    const moment = require('moment-timezone');
-    const momentHijri = require('moment-hijri');
-    
-    // Set timezone to Iraq
-    moment.tz.setDefault("Asia/Baghdad");
-    
-    // Get current time in Iraq
-    const currentTime = moment().format('HH:mm:ss');
-    
-    // Get Hijri date
-    const hijriDate = momentHijri().format('iYYYY/iM/iD');
-    
-    // Get Gregorian date
-    const gregorianDate = moment().format('YYYY/MM/DD');
-    
-    // Get day of week in Arabic
-    const weekDays = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-    const dayOfWeek = weekDays[moment().day()];
-    
-    // Construct the message
-    const message = `🕒 الوقت الحالي: ${currentTime}\n` +
-                   `📅 التاريخ الهجري: ${hijriDate}\n` +
-                   `📆 التاريخ الميلادي: ${gregorianDate}\n` +
-                   `📌 اليوم: ${dayOfWeek}`;
-    
-    return api.sendMessage(message, event.threadID, event.messageID);
+    const iraqTime = DateTime.now().setZone('Asia/Baghdad');
+    const gregorianDate = iraqTime.toFormat('yyyy-MM-dd HH:mm:ss'); // التاريخ الميلادي
+    const hijriDate = iraqTime.toFormat('HH:mm:ss dd/MM/yyyy'); // التاريخ الهجري (سوف تحتاج إلى مكتبة إضافية لتحويله بدقة)
+    const weekDay = iraqTime.weekdayLong; // يوم الأسبوع
+
+    const responseMessage = `
+    الوقت الحالي في العراق:
+    - التاريخ الميلادي: ${gregorianDate}
+    - التاريخ الهجري: ${hijriDate}
+    - يوم الأسبوع: ${weekDay}
+    `;
+
+    return api.sendMessage(responseMessage, event.threadID, event.messageID);
 };
