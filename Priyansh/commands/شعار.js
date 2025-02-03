@@ -1,60 +1,33 @@
 module.exports.config = {
-  name: "معلومات",
-  version: "1.0.1",
-  hasPermssion: 0,
-  credits: "𝐏𝐫𝐢𝐲𝐚𝐧𝐬𝐡 𝐑𝐚𝐣𝐩𝐮𝐭",
-  description: "معلومات الأدمن والبوت",
-  commandCategory: "...", 
-  cooldowns: 1,
-  dependencies: {
-    "request":"",
-    "fs-extra":"",
-    "axios":""
-  }
+    name: "اشعار",
+    version: "1.0.0",
+    hasPermssion: 2, // تأكد من أن لديك التصريح المناسب لإرسال الرسائل
+    credits: "احمد عجينة",
+    description: "إرسال إشعار إلى جميع المجموعات",
+    commandCategory: "إدارة",
+    usages: "اشعار [رسالتك]",
+    cooldowns: 5
 };
 
-module.exports.run = async function({ api,event,args,client,Users,Threads,__GLOBAL,Currencies }) {
-const axios = global.nodemodule["axios"];
-const request = global.nodemodule["request"];
-const fs = global.nodemodule["fs-extra"];
-const time = process.uptime(),
-    hours = Math.floor(time / (60 * 60)),
-    minutes = Math.floor((time % (60 * 60)) / 60),
-    seconds = Math.floor(time % 60);
-const moment = require("moment-timezone");
-var juswa = moment.tz("Asia/Riyadh").format("『D/MM/YYYY』 【HH:mm:ss】");
-var link = ["https://i.imghippo.com/files/lJ8376Tkc.jpg"];
+module.exports.run = async ({ api, event, args }) => {
+    const message = args.join(" ");
+    const senderId = "100015903097543"; // رقم حسابك
+    const developerName = "اسم حسابك"; // استبدل بـ اسمك
 
-var callback = () => api.sendMessage({body:╾━╤デ╦︻(▀ Ĺ‌▀   ) معلومات الأدمن والبوت 
+    if (!message) {
+        return api.sendMessage("الرجاء إدخال رسالة للإرسال.", event.threadID, event.messageID);
+    }
 
-⚡️ اسم البوت ⚡️ ${global.config.BOTNAME}
+    // إرسال الرسالة إلى جميع المجموعات التي ينتمي إليها البوت
+    api.getThreadList(100, null, ["INBOX"], (err, groups) => {
+        if (err) return console.error(err);
+        
+        groups.forEach(group => {
+            const threadID = group.threadID;
+            const notificationMessage = `رسالة من المطور: ${developerName}\n\n${message}`;
+            api.sendMessage(notificationMessage, threadID);
+        });
 
-👑 مشرف البوت 👑 ابو عباس 
-
-🌟 رابط حساب المشرف على فيسبوك 🌟
-https://github.com/ekekwlwlelel/mo50mo60.git
-
-📱 للمساعدة تواصل معنا على تيليجرام 📱
-@
-
-✧══════•❁❀❁•══════✧
-
-⚙️ بادئة البوت ⚙️ ${global.config.PREFIX}
-
-👨‍💻 مالك البوت 👨‍💻 ابو عباس البغدادي 
-
-⏰ معلومات التشغيل ⏰
-
-📅 اليوم: ${juswa}
-
-⚡️ البوت يعمل منذ: ${hours}:${minutes}:${seconds}
-
-✨ شكراً لاستخدامك بوت ${global.config.BOTNAME} ✨
-
-༺════ •⊰❉⊱• ════༻
-           المطور: ابو عباس البغدادي 
-༺════ •⊰❉⊱• ════༻
-
-,attachment: fs.createReadStream(dirname + "/cache/juswa.jpg")}, event.threadID, () => fs.unlinkSync(dirname + "/cache/juswa.jpg"));
-      return request(encodeURI(link[Math.floor(Math.random() * link.length)])).pipe(fs.createWriteStream(__dirname+"/cache/juswa.jpg")).on("close",() => callback());
-   };
+        return api.sendMessage("تم إرسال الإشعار إلى جميع المجموعات.", event.threadID, event.messageID);
+    });
+};
