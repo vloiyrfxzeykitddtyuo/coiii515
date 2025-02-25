@@ -1,46 +1,46 @@
 module.exports.config = {
-    name: "الوقت",
+    name: "حماية",
     version: "1.0.0",
     hasPermssion: 0,
     credits: "احمد عجينة",
-    description: "عرض التاريخ والوقت",
+    description: "مراقبة تغيير الأسماء والكلمات السيئة",
     commandCategory: "معلومات",
-    usages: "تاريخ_البوت",
+    usages: "حماية",
     cooldowns: 5
 };
 
+const badWords = ["كلمة1", "كلمة2", "كلمة3"]; // أضف الكلمات السيئة هنا
+
 module.exports.run = async ({ api, event }) => {
-    // دالة لتحويل التاريخ الميلادي إلى هجري
-    function gregorianToHijri(date) {
-        const year = date.getFullYear();
-        const month = date.getMonth() + 1;
-        const day = date.getDate();
-
-        // معامل التحويل التقريبي
-        const hijriYear = Math.floor((year - 622) * (33/32));
-        const hijriMonth = month;
-        const hijriDay = day;
-
-        return `${hijriDay}/${hijriMonth}/${hijriYear}`;
+    // دالة للتحقق من الكلمات السيئة
+    function containsBadWords(message) {
+        return badWords.some(word => message.includes(word));
     }
 
-    // الحصول على الوقت الحالي بتوقيت العراق
-    const iraqTimeZone = 'Asia/Baghdad';
-    const now = new Date().toLocaleString('ar-IQ', { timeZone: iraqTimeZone });
-    
-    // الحصول على اليوم
-    const daysInArabic = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-    const dayOfWeek = daysInArabic[new Date().getDay()];
-    
-    // الحصول على التاريخ الهجري
-    const hijriDate = gregorianToHijri(new Date());
-    
-    // تنسيق الرسالة
-    const message = `🕒 الوقت الحالي (بتوقيت العراق): ${now}\n` +
-                   `📅 اليوم: ${dayOfWeek}\n` +
-                   `🌙 التاريخ الهجري: ${hijriDate}\n` +
-                   `📆 السنة الميلادية: ${new Date().getFullYear()}`;
+    // مراقبة تغيير الاسم
+    api.getThreadInfo(event.threadID, (err, threadInfo) => {
+        if (err) return console.error(err);
 
-    // إرسال الرسالة
-    return api.sendMessage(message, event.threadID, event.messageID);
+        const members = threadInfo.participantIDs;
+
+        // تحقق من الأعضاء في المجموعة
+        members.forEach(memberID => {
+            api.getUserInfo(memberID, (err, userInfo) => {
+                if (err) return console.error(err);
+
+                const userName = userInfo[memberID].name;
+
+                // تحقق من تغيير الاسم
+                if (event.logMessageType === "log:subscribe" && event.logMessageData && event.logMessageData["name"] !== userName) {
+                    const message = `⚠️ تم تغيير اسم أحد الأعضاء: ${userName} إلى ${event.logMessageData.name}`;
+                    return api.sendMessage(message, event.threadID);
+                }
+            });
+        });
+    });
+
+    // تحقق من وجود كلمات سيئة في الرسالة
+    if (containsBadWords(event.body)) {
+        return api.sendMessage("🚫 تحتوي رسالتك على كلمات غير لائقة.", event.threadID);
+    }
 };
