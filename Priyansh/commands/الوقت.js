@@ -1,6 +1,7 @@
 
+const fs = require('fs');
+const axios = require('axios');
 
-```
 module.exports.config = {
   name: "تغيير_الاسم",
   version: "1.0.0",
@@ -20,4 +21,3 @@ module.exports.run = async ({ api, event }) => {
     return api.sendMessage(message, threadID);
   }
 };
-```
