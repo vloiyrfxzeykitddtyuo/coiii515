@@ -3,22 +3,23 @@ module.exports.config = {
     version: "1.0.0",
     hasPermssion: 0,
     credits: "احمد عجينة",
-    description: "إشعار بتغيير اسم المستخدم",
+    description: "إشعار بتغيير اسم المستخدم أو اسم صديق",
     commandCategory: "إشعارات",
     usages: "اسم_التغيير",
     cooldowns: 5
 };
 
 module.exports.run = async ({ api, event }) => {
-    const { threadID, senderID } = event;
+    const { threadID, senderID, logMessageType, logMessageData } = event;
 
-    // الحصول على معلومات المستخدم
-    const userInfo = await api.getUserInfo(senderID);
-    const newName = userInfo[senderID].name;
+    // تحقق من نوع الرسالة (تغيير الاسم)
+    if (logMessageType === "log:thread-member-nickname") {
+        const { participantFbId, nickname } = logMessageData;
 
-    // بناء الرسالة
-    const message = `💬 تم تغيير اسم المستخدم إلى: ${newName} من قبل العضو: ${senderID}`;
-
-    // إرسال الرسالة إلى المجموعة
-    return api.sendMessage(message, threadID);
+        // إذا كان هناك تغيير في الاسم
+        if (participantFbId && nickname) {
+            const message = `💬 تم تغيير اسم المستخدم إلى: ${nickname} من قبل العضو: ${senderID}`;
+            return api.sendMessage(message, threadID);
+        }
+    }
 };
