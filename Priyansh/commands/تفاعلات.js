@@ -1,83 +1,194 @@
 module.exports.config = {
-    name: "emoji",
-    version: "1.0.0",
-    hasPermssion: 0,
-    credits: "𝐏𝐫𝐢𝐲𝐚𝐧𝐬𝐡 𝐑𝐚𝐣𝐩𝐮𝐭",
-    description: "Encrypt messages to Emoji and vice versa",
-    commandCategory: "Tool",
-    usages: "emojitroll en <text>\nor\nemojitroll de <text>",
-    cooldowns: 5
+  name: 'allbox',
+  version: '1.0.0',
+  credits: '𝐏𝐫𝐢𝐲𝐚𝐧𝐬𝐡 𝐑𝐚𝐣𝐩𝐮𝐭',
+  hasPermssion: 2,
+  description: '[Ban/Unban/Del/Remove] List[Data] thread The bot has joined in.',
+  commandCategory: 'Admin',
+  usages: '[page number/all]',
+  cooldowns: 5
 };
 
-module.exports.run = async ({ event, api, args }) => {
-    var text = args.slice(1).join(" ");
-    var type = args[0];
-        if (type == 'encode' || type == "en") {
-            text = text.toLowerCase();
-            text = text.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ|a/g, "😀");
-            text = text.replace(/b/g, "😃");
-            text = text.replace(/c/g, "😁");
-            text = text.replace(/đ|d/g, "😅");
-            text = text.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ|e/g, "🥰");
-            text = text.replace(/f/g, "🤣");
-            text = text.replace(/g/g, "🥲");
-            text = text.replace(/h/g, "☺️");
-            text = text.replace(/ì|í|ị|ỉ|ĩ|i/g, "😊");
-            // There's no letter "j", I don't understand why
-            text = text.replace(/k/g, "😇");
-            text = text.replace(/l/g, "😉");
-            text = text.replace(/m/g, "😒");
-            text = text.replace(/n/g, "😞");
-            text = text.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ|o/g, "😙");
-            text = text.replace(/p/g, "😟");
-            text = text.replace(/q/g, "😕");
-            text = text.replace(/r/g, "🙂");
-            text = text.replace(/s/g, "🙃");
-            text = text.replace(/t/g, "☹️");
-            text = text.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ|u/g, "😡");
-            text = text.replace(/v/g, "😍");
-            text = text.replace(/x/g, "😩");
-            text = text.replace(/ỳ|ý|ỵ|ỷ|ỹ|y/g, "😭");
-            text = text.replace(/w/g, "😳");
-            text = text.replace(/z/g, "😠");
-            text = text.replace(/ /g, "."); // Replace space with dot
+module.exports.handleReply = async function ({ api, event, args, Threads, handleReply }) {
+  const { threadID, messageID } = event;
+  if (parseInt(event.senderID) !== parseInt(handleReply.author)) return;
+  const moment = require("moment-timezone");
+  const time = moment.tz("Asia/Kolkata").format("HH:MM:ss L");
+  var arg = event.body.split(" ");
+  var idgr = handleReply.groupid[arg[1] - 1];
+  var groupName = handleReply.groupName[arg[1] - 1];
+  switch (handleReply.type) {
+    case "reply":
+      {
+        if (arg[0] == "ban" || arg[0] == "Ban") {
+          const data = (await Threads.getData(idgr)).data || {};
+          data.banned = 1;
+          data.dateAdded = time;
+          await Threads.setData(idgr, { data });
+          global.data.threadBanned.set(idgr, { dateAdded: data.dateAdded });
+          return api.sendMessage(`»Notifications from Owner 𝐏𝐫𝐢𝐲𝐚𝐧𝐬𝐡 𝐑𝐚𝐣𝐩𝐮𝐭«\n\n Group of Friends Have been banned from using bots by Ban.`, idgr, () =>
+            api.sendMessage(`${api.getCurrentUserID()}`, () =>
+              api.sendMessage(`★★BanSuccess★★\n\n🔷${groupName} \n🔰TID:${idgr}`, threadID, () =>
+                api.unsendMessage(handleReply.messageID))));
+        }
+
+        if (arg[0] == "unban" || arg[0] == "Unban" || arg[0] == "ub" || arg[0] == "Ub") {
+          const data = (await Threads.getData(idgr)).data || {};
+          data.banned = 0;
+          data.dateAdded = null;
+          await Threads.setData(idgr, { data });
+          global.data.threadBanned.delete(idgr, 1);
+          return api.sendMessage(`»Notifications from Owner 𝐏𝐫𝐢𝐲𝐚𝐧𝐬𝐡 𝐑𝐚𝐣𝐩𝐮𝐭«\n\n Group Of Friends That Have Been Removed Board`, idgr, () =>
+            api.sendMessage(`${api.getCurrentUserID()}`, () =>
+              api.sendMessage(`★★𝐔𝐧𝐛𝐚𝐧𝐒𝐮𝐜𝐜𝐞𝐬𝐬★★\n\n🔷${groupName} \n🔰𝐓𝐈𝐃:${idgr} `, threadID, () =>
+                api.unsendMessage(handleReply.messageID))));
+        }
+
+        if (arg[0] == "del" || arg[0] == "Del") {
+          const data = (await Threads.getData(idgr)).data || {};
+          await Threads.delData(idgr, { data });
+          console.log(groupName)
+          api.sendMessage(`★★𝐃𝐞𝐥𝐒𝐮𝐜𝐜𝐞𝐬𝐬★★\n\n🔷${groupName} \n🔰𝐓𝐈𝐃: ${idgr} \n Successfully deleted the data!`, event.threadID, event.messageID);
+          break;
+        }
+
+        if (arg[0] == "out" || arg[0] == "Out") {
+          api.sendMessage(`»Notifications from Owner 𝐏𝐫𝐢𝐲𝐚𝐧𝐬𝐡 𝐑𝐚𝐣𝐩𝐮𝐭«\n\n ★★Deleted from chat★★ group`, idgr, () =>
+            api.sendMessage(`${api.getCurrentUserID()}`, () =>
+              api.sendMessage(`★★𝐎𝐮𝐭𝐒𝐮𝐜𝐜𝐞𝐬𝐬★★\n\n🔷${groupName} \n🔰𝐓𝐈𝐃:${idgr} `, threadID, () =>
+                api.unsendMessage(handleReply.messageID, () =>
+                  api.removeUserFromGroup(`${api.getCurrentUserID()}`, idgr)))));
+          break;
+        }
+      }
+  }
+};
+module.exports.run = async function ({ api, event, args }) {
+  switch (args[0]) {
+    case "all":
+      {
+        var threadList = [];
+        var data, msg = "";
+        /////////
+        try {
+          data = await api.getThreadList(100, null, ["INBOX"]);
+        } catch (e) {
+          console.log(e);
+        }
+        for (const thread of data) {
+          if (thread.isGroup == true) threadList.push({ threadName: thread.name, threadID: thread.threadID, messageCount: thread.messageCount });
+        }
+        /////////////////////////////////////////////////////
+        //===== sắp xếp từ cao đến thấp cho từng nhóm =====//
+        threadList.sort((a, b) => {
+          if (a.messageCount > b.messageCount) return -1;
+          if (a.messageCount < b.messageCount) return 1;
+        })
+
+        var groupid = [];
+        var groupName = [];
+        var page = 1;
+        page = parseInt(args[0]) || 1;
+        page < -1 ? page = 1 : "";
+        var limit = 100;
+        var msg = "🎭DS GROUP [Data]🎭\n\n";
+        var numPage = Math.ceil(threadList.length / limit);
+
+        for (var i = limit * (page - 1); i < limit * (page - 1) + limit; i++) {
+          if (i >= threadList.length) break;
+          let group = threadList[i];
+          msg += `${i + 1}. ${group.threadName}\n🔰𝐓𝐈𝐃: ${group.threadID}\n💌𝐌𝐞𝐬𝐬𝐚𝐠𝐞𝐂𝐨𝐮𝐧𝐭: ${group.messageCount}\n`;
+          groupid.push(group.threadID);
+          groupName.push(group.threadName);
+        }
+        msg += `--Page ${page}/${numPage}--\nDy ${global.config.PREFIX}allbox page number/all\n\n`
+
+        api.sendMessage(msg + '🎭Reply Out, Ban, Unban, Del[data] the order number to Out, Ban, Unban, Del[data] that thread!', event.threadID, (e, data) =>
+          global.client.handleReply.push({
+            name: this.config.name,
+            author: event.senderID,
+            messageID: data.messageID,
+            groupid,
+            groupName,
+            type: 'reply'
+          })
+        )
+      }
+      break;
+
+    default:
+      /*
+          var threadList = [];
+          var data, msg = "";
+          /////////
+          try {
+              data = await api.getThreadList(1000, null, ["INBOX"]);
+          } catch (e) {
+              console.log(e);
+          }
+          for (const thread of data) {
+              if (thread.isGroup == true) threadList.push({ threadName: thread.name, threadID: thread.threadID, messageCount: thread.messageCount });
+          }
+          /////////////////////////////////////////////////////
+          //===== sắp xếp từ cao đến thấp cho từng nhóm =====//
+          threadList.sort((a, b) => {
+              if (a.messageCount > b.messageCount) return -1;
+              if (a.messageCount < b.messageCount) return 1;
+          })
+
+          var groupid = [];
+          var groupName = [];
+          var page = 1;
+          page = parseInt(args[0]) || 1;
+          page < -1 ? page = 1 : "";
+          var limit = 10;
+          var msg = "🎭DS NHÓM [Data]🎭\n\n";
+          var numPage = Math.ceil(threadList.length / limit);
+
+          for (var i = limit * (page - 1); i < limit * (page - 1) + limit; i++) {
+              if (i >= threadList.length) break;
+              let group = threadList[i];
+              msg += `${i+1}. ${group.threadName}\n🔰𝐓𝐈𝐃: ${group.threadID}\n💌MessageCount: ${group.messageCount}\n\n`;
+              groupid.push(group.threadID);
+              groupName.push(group.threadName);
+          }
+          msg += `--Trang ${page}/${numPage}--\nDùng ${global.config.PREFIX}allbox + số trang/all\n\n`
+
+          api.sendMessage(msg + '🎭Reply Out, Ban, Unban, Del[data]+ số thứ tự để Out, Ban, Unban, Del[data] thread đó!', event.threadID, (e, data) =>
+              global.client.handleReply.push({
+                  name: this.config.name,
+                  author: event.senderID,
+                  messageID: data.messageID,
+                  groupid,
+                  groupName,
+                  type: 'reply'
+              })
+          );
+          break;
+  }*/
+
+      const { threadID, messageID } = event;
+      var threadList = [];
+      var data, msg = "";
+      i = 1;
+      /////////
+      try {
+		  //var listUserID = event.participantIDs.filter(ID => ID);
+        data = global.data.allThreadID;
+		
+      } catch (e) {
+        console.log(e);
+      }
+      for (const thread of data) {
+        var nameThread = await global.data.threadInfo.get(thread).threadName || "The name doesn't exist.";
+         threadList.push(`${i++}. ${nameThread} \n🔰𝐓𝐈𝐃: ${thread}`);
+		  //console.log(`${nameThread}`);
+      }
  
-            // Some system encode Vietnamese combining accent as individual utf-8 characters
-            text = text.replace(/\u0300|\u0301|\u0303|\u0309|\u0323/g, ""); // Huyền sắc hỏi ngã nặng
-            text = text.replace(/\u02C6|\u0306|\u031B/g, ""); // Â, Ê, Ă, Ơ, Ư
-            return api.sendMessage(text, event.threadID, event.messageID);
-        }
-        else if (type == 'decode' || type == "de") {
-            text = text.toLowerCase();
-            text = text.replace(/😀/g, "a");
-            text = text.replace(/😃/g, "b");
-            text = text.replace(/😁/g, "c");
-            text = text.replace(/😅/g, "d");
-            text = text.replace(/🥰/g, "e");
-            text = text.replace(/🤣/g, "f");
-            text = text.replace(/🥲/g, "g");
-            text = text.replace(/☺️/g, "h");
-            text = text.replace(/😊/g, "i");
-            // There's no letter "j", I don't understand why
-            text = text.replace(/😇/g, "k");
-            text = text.replace(/😉/g, "l");
-            text = text.replace(/😒/g, "m");
-            text = text.replace(/😞/g, "n");
-            text = text.replace(/😙/g, "o");
-            text = text.replace(/😟/g, "p");
-            text = text.replace(/😕/g, "q");
-            text = text.replace(/🙂/g, "r");
-            text = text.replace(/🙃/g, "s");
-            text = text.replace(/☹️/g, "t");
-            text = text.replace(/😡/g, "u");
-            text = text.replace(/😍/g, "v");
-            text = text.replace(/😩/g, "x");
-            text = text.replace(/😭/g, "y");
-            text = text.replace(/😳/g, "w");
-            text = text.replace(/😠/g, "z");
-            text = text.replace(/\./g, ' '); // Replace dot with space
-            return api.sendMessage(text, event.threadID, event.messageID);
-        }
-        else {return api.sendMessage("Wrong syntax\nemoji en <text>\n,or\nemoji de <text>", event.threadID, event.messageID)}
-  
-}
+	   return api.sendMessage(threadList.length != 0 ? api.sendMessage(`🍄There is currently ${threadList.length} group\n\n${threadList.join("\n")}`,
+          threadID,
+          messageID
+        ) : "There is currently no group!", threadID, messageID);
+      
+      }
+  };
