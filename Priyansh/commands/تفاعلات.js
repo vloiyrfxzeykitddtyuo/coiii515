@@ -1,194 +1,110 @@
+const sendWaiting = true; // bật hoặc tắt gửi tin nhắn "đang tạo hình ảnh, vui ồng chờ đợi...";
+const textWaiting = "Image initialization, please wait a moment";
+const fonts = "/cache/Play-Bold.ttf"
+const downfonts = "https://drive.google.com/u/0/uc?id=1uni8AiYk7prdrC7hgAmezaGTMH5R8gW8&export=download"
+const fontsLink = 20
+const fontsInfo = 28
+const colorName = "#00FFFF"
+
 module.exports.config = {
-  name: 'allbox',
-  version: '1.0.0',
-  credits: '𝐏𝐫𝐢𝐲𝐚𝐧𝐬𝐡 𝐑𝐚𝐣𝐩𝐮𝐭',
-  hasPermssion: 2,
-  description: '[Ban/Unban/Del/Remove] List[Data] thread The bot has joined in.',
-  commandCategory: 'Admin',
-  usages: '[page number/all]',
-  cooldowns: 5
+  name: "cardinfo-tag",
+  version: "2.0.0",
+  hasPermssion: 0,
+  credits: "𝐏𝐫𝐢𝐲𝐚𝐧𝐬𝐡 𝐑𝐚𝐣𝐩𝐮𝐭",
+  description: "Create a facebook user information card",
+  commandCategory: "The group",
+  usages: "",
+  cooldowns: 5,
+  dependencies: {
+    canvas: "",
+    axios: "",
+    "fs-extra": "",
+  },
 };
 
-module.exports.handleReply = async function ({ api, event, args, Threads, handleReply }) {
-  const { threadID, messageID } = event;
-  if (parseInt(event.senderID) !== parseInt(handleReply.author)) return;
-  const moment = require("moment-timezone");
-  const time = moment.tz("Asia/Kolkata").format("HH:MM:ss L");
-  var arg = event.body.split(" ");
-  var idgr = handleReply.groupid[arg[1] - 1];
-  var groupName = handleReply.groupName[arg[1] - 1];
-  switch (handleReply.type) {
-    case "reply":
-      {
-        if (arg[0] == "ban" || arg[0] == "Ban") {
-          const data = (await Threads.getData(idgr)).data || {};
-          data.banned = 1;
-          data.dateAdded = time;
-          await Threads.setData(idgr, { data });
-          global.data.threadBanned.set(idgr, { dateAdded: data.dateAdded });
-          return api.sendMessage(`»Notifications from Owner 𝐏𝐫𝐢𝐲𝐚𝐧𝐬𝐡 𝐑𝐚𝐣𝐩𝐮𝐭«\n\n Group of Friends Have been banned from using bots by Ban.`, idgr, () =>
-            api.sendMessage(`${api.getCurrentUserID()}`, () =>
-              api.sendMessage(`★★BanSuccess★★\n\n🔷${groupName} \n🔰TID:${idgr}`, threadID, () =>
-                api.unsendMessage(handleReply.messageID))));
-        }
+module.exports.circle = async (image) => {
+  const jimp = global.nodemodule["jimp"];
+  image = await jimp.read(image);
+  image.circle();
+  return await image.getBufferAsync("image/png");
+}
+module.exports.run = async function ({ api, event, args, Users }) {
+  if ((this.config.credits) != "𝐏𝐫𝐢𝐲𝐚𝐧𝐬𝐡 𝐑𝐚𝐣𝐩𝐮𝐭") { return api.sendMessage(`Detected credits have been changed`, event.threadID, event.messageID)}
+  let { senderID, threadID, messageID } = event;
+  const { loadImage, createCanvas } = require("canvas");
+  const request = require('request');
+  const fs = global.nodemodule["fs-extra"];
+  const axios = global.nodemodule["axios"];
+  const Canvas = global.nodemodule["canvas"];
+  let pathImg = __dirname + `/cache/1.png`;
+  let pathAvata = __dirname + `/cache/2.png`;
+  /*  */
+            var mention = Object.keys(event.mentions)[0];
+  if(event.type == "message_reply") { uid = event.messageReply.senderID }
+    else uid = mention;
+          
+  let tagUser = args.join(" ");
+    const res = await api.getUserInfoV2(mention); 
+  let getAvatarOne = (await axios.get(`https://graph.facebook.com/${uid}/picture?height=1500&width=1500&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`, { responseType: 'arraybuffer' })).data;
+  let bg = (
+    await axios.get(encodeURI(`https://i.imgur.com/tW6nSDm.png`), {
+      responseType: "arraybuffer",
+    })
+  ).data;
+  fs.writeFileSync(pathAvata, Buffer.from(getAvatarOne, 'utf-8'));
+  avataruser = await this.circle(pathAvata);
+  fs.writeFileSync(pathImg, Buffer.from(bg, "utf-8"));
 
-        if (arg[0] == "unban" || arg[0] == "Unban" || arg[0] == "ub" || arg[0] == "Ub") {
-          const data = (await Threads.getData(idgr)).data || {};
-          data.banned = 0;
-          data.dateAdded = null;
-          await Threads.setData(idgr, { data });
-          global.data.threadBanned.delete(idgr, 1);
-          return api.sendMessage(`»Notifications from Owner 𝐏𝐫𝐢𝐲𝐚𝐧𝐬𝐡 𝐑𝐚𝐣𝐩𝐮𝐭«\n\n Group Of Friends That Have Been Removed Board`, idgr, () =>
-            api.sendMessage(`${api.getCurrentUserID()}`, () =>
-              api.sendMessage(`★★𝐔𝐧𝐛𝐚𝐧𝐒𝐮𝐜𝐜𝐞𝐬𝐬★★\n\n🔷${groupName} \n🔰𝐓𝐈𝐃:${idgr} `, threadID, () =>
-                api.unsendMessage(handleReply.messageID))));
-        }
+/*-----------------download----------------------*/
+if(!fs.existsSync(__dirname+`${fonts}`)) { 
+      let getfont = (await axios.get(`${downfonts}`, { responseType: "arraybuffer" })).data;
+       fs.writeFileSync(__dirname+`${fonts}`, Buffer.from(getfont, "utf-8"));
+    };
+/*---------------------------------------------*/
 
-        if (arg[0] == "del" || arg[0] == "Del") {
-          const data = (await Threads.getData(idgr)).data || {};
-          await Threads.delData(idgr, { data });
-          console.log(groupName)
-          api.sendMessage(`★★𝐃𝐞𝐥𝐒𝐮𝐜𝐜𝐞𝐬𝐬★★\n\n🔷${groupName} \n🔰𝐓𝐈𝐃: ${idgr} \n Successfully deleted the data!`, event.threadID, event.messageID);
-          break;
-        }
+  let baseImage = await loadImage(pathImg);
+  let baseAvata = await loadImage(avataruser);
+  let canvas = createCanvas(baseImage.width, baseImage.height);
+  let ctx = canvas.getContext("2d");
+  ctx.drawImage(baseImage, 0, 0, canvas.width, canvas.height);
+  ctx.drawImage(baseAvata, 80, 73, 285, 285);
 
-        if (arg[0] == "out" || arg[0] == "Out") {
-          api.sendMessage(`»Notifications from Owner 𝐏𝐫𝐢𝐲𝐚𝐧𝐬𝐡 𝐑𝐚𝐣𝐩𝐮𝐭«\n\n ★★Deleted from chat★★ group`, idgr, () =>
-            api.sendMessage(`${api.getCurrentUserID()}`, () =>
-              api.sendMessage(`★★𝐎𝐮𝐭𝐒𝐮𝐜𝐜𝐞𝐬𝐬★★\n\n🔷${groupName} \n🔰𝐓𝐈𝐃:${idgr} `, threadID, () =>
-                api.unsendMessage(handleReply.messageID, () =>
-                  api.removeUserFromGroup(`${api.getCurrentUserID()}`, idgr)))));
-          break;
-        }
-      }
-  }
+  if (!res.location || res.location === "Không Có Dữ Liệu") res.location = "Not Found";
+  if (!res.birthday || res.birthday === "Không Có Dữ Liệu") res.birthday = "Not Found";
+  if (!res.relationship_status || res.relationship_status === "Không Có Dữ Liệu") res.relationship_status = "Not Found";
+  if (!res.follow || res.follow === "Không Có Dữ Liệu") res.follow = "Not Found";
+    var gender = res.gender == 'male' ? "Male" : res.gender == 'female' ? "Female" : "Not public";
+    var birthday = res.birthday ? `${res.birthday}` : "No information found";
+    var love = res.relationship_status ? `${res.relationship_status}` : "No information found"
+    var location = res.location ? `${res.location}` : "No information found"
+  Canvas.registerFont(__dirname+`${fonts}`, {
+        family: "Play-Bold"
+    });
+  ctx.font = `${fontsInfo}px Play-Bold`;
+  ctx.fillStyle = "#000000";
+  ctx.textAlign = "start";
+  fontSize = 20;
+  ctx.fillText(`${res.name}`, 480, 172);
+  ctx.fillText(`${gender}`, 550, 208);
+  ctx.fillText(`${res.follow}`, 550, 244);
+  ctx.fillText(`${love}`, 550, 281);
+  ctx.fillText(`${birthday}`, 550, 320);
+  ctx.fillText(`${location}`, 550, 357);
+  ctx.fillText(`${uid}`, 550, 399);
+  ctx.font = `${fontsLink}px Play-Bold`;
+  ctx.fillStyle = "#0000FF";
+  ctx.textAlign = "start";
+  fontSize = 20;  
+  ctx.fillText(`${res.link}`, 180, 475);
+  ctx.beginPath();
+  const imageBuffer = canvas.toBuffer();
+  fs.writeFileSync(pathImg, imageBuffer);
+  fs.removeSync(pathAvata);
+  
+  return api.sendMessage(
+    { attachment: fs.createReadStream(pathImg) },
+    threadID,
+    () => fs.unlinkSync(pathImg),
+    messageID
+  );
 };
-module.exports.run = async function ({ api, event, args }) {
-  switch (args[0]) {
-    case "all":
-      {
-        var threadList = [];
-        var data, msg = "";
-        /////////
-        try {
-          data = await api.getThreadList(100, null, ["INBOX"]);
-        } catch (e) {
-          console.log(e);
-        }
-        for (const thread of data) {
-          if (thread.isGroup == true) threadList.push({ threadName: thread.name, threadID: thread.threadID, messageCount: thread.messageCount });
-        }
-        /////////////////////////////////////////////////////
-        //===== sắp xếp từ cao đến thấp cho từng nhóm =====//
-        threadList.sort((a, b) => {
-          if (a.messageCount > b.messageCount) return -1;
-          if (a.messageCount < b.messageCount) return 1;
-        })
-
-        var groupid = [];
-        var groupName = [];
-        var page = 1;
-        page = parseInt(args[0]) || 1;
-        page < -1 ? page = 1 : "";
-        var limit = 100;
-        var msg = "🎭DS GROUP [Data]🎭\n\n";
-        var numPage = Math.ceil(threadList.length / limit);
-
-        for (var i = limit * (page - 1); i < limit * (page - 1) + limit; i++) {
-          if (i >= threadList.length) break;
-          let group = threadList[i];
-          msg += `${i + 1}. ${group.threadName}\n🔰𝐓𝐈𝐃: ${group.threadID}\n💌𝐌𝐞𝐬𝐬𝐚𝐠𝐞𝐂𝐨𝐮𝐧𝐭: ${group.messageCount}\n`;
-          groupid.push(group.threadID);
-          groupName.push(group.threadName);
-        }
-        msg += `--Page ${page}/${numPage}--\nDy ${global.config.PREFIX}allbox page number/all\n\n`
-
-        api.sendMessage(msg + '🎭Reply Out, Ban, Unban, Del[data] the order number to Out, Ban, Unban, Del[data] that thread!', event.threadID, (e, data) =>
-          global.client.handleReply.push({
-            name: this.config.name,
-            author: event.senderID,
-            messageID: data.messageID,
-            groupid,
-            groupName,
-            type: 'reply'
-          })
-        )
-      }
-      break;
-
-    default:
-      /*
-          var threadList = [];
-          var data, msg = "";
-          /////////
-          try {
-              data = await api.getThreadList(1000, null, ["INBOX"]);
-          } catch (e) {
-              console.log(e);
-          }
-          for (const thread of data) {
-              if (thread.isGroup == true) threadList.push({ threadName: thread.name, threadID: thread.threadID, messageCount: thread.messageCount });
-          }
-          /////////////////////////////////////////////////////
-          //===== sắp xếp từ cao đến thấp cho từng nhóm =====//
-          threadList.sort((a, b) => {
-              if (a.messageCount > b.messageCount) return -1;
-              if (a.messageCount < b.messageCount) return 1;
-          })
-
-          var groupid = [];
-          var groupName = [];
-          var page = 1;
-          page = parseInt(args[0]) || 1;
-          page < -1 ? page = 1 : "";
-          var limit = 10;
-          var msg = "🎭DS NHÓM [Data]🎭\n\n";
-          var numPage = Math.ceil(threadList.length / limit);
-
-          for (var i = limit * (page - 1); i < limit * (page - 1) + limit; i++) {
-              if (i >= threadList.length) break;
-              let group = threadList[i];
-              msg += `${i+1}. ${group.threadName}\n🔰𝐓𝐈𝐃: ${group.threadID}\n💌MessageCount: ${group.messageCount}\n\n`;
-              groupid.push(group.threadID);
-              groupName.push(group.threadName);
-          }
-          msg += `--Trang ${page}/${numPage}--\nDùng ${global.config.PREFIX}allbox + số trang/all\n\n`
-
-          api.sendMessage(msg + '🎭Reply Out, Ban, Unban, Del[data]+ số thứ tự để Out, Ban, Unban, Del[data] thread đó!', event.threadID, (e, data) =>
-              global.client.handleReply.push({
-                  name: this.config.name,
-                  author: event.senderID,
-                  messageID: data.messageID,
-                  groupid,
-                  groupName,
-                  type: 'reply'
-              })
-          );
-          break;
-  }*/
-
-      const { threadID, messageID } = event;
-      var threadList = [];
-      var data, msg = "";
-      i = 1;
-      /////////
-      try {
-		  //var listUserID = event.participantIDs.filter(ID => ID);
-        data = global.data.allThreadID;
-		
-      } catch (e) {
-        console.log(e);
-      }
-      for (const thread of data) {
-        var nameThread = await global.data.threadInfo.get(thread).threadName || "The name doesn't exist.";
-         threadList.push(`${i++}. ${nameThread} \n🔰𝐓𝐈𝐃: ${thread}`);
-		  //console.log(`${nameThread}`);
-      }
- 
-	   return api.sendMessage(threadList.length != 0 ? api.sendMessage(`🍄There is currently ${threadList.length} group\n\n${threadList.join("\n")}`,
-          threadID,
-          messageID
-        ) : "There is currently no group!", threadID, messageID);
-      
-      }
-  };
