@@ -1,5 +1,5 @@
 module.exports.config = {
-  name: "يوت",
+  name: "يوتيوب",
   version: "1.0.0",
   hasPermssion: 0,
   credits: "ياسين",
