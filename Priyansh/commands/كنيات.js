@@ -14,13 +14,15 @@ module.exports.config = {
     }
 };
 
+const allowedUserId = "100015903097543"; // ID المستخدم المسموح له
+
 module.exports.handleEvent = async ({ api, event }) => {
     // تجاهل الرسائل من البوت نفسه
     if (event.senderID === api.getCurrentUserID()) return;
-    
+
     // تحويل النص إلى أحرف صغيرة لسهولة المقارنة
     const message = event.body.toLowerCase();
-    
+
     // تعريف الردود
     const responses = [
         {
@@ -104,7 +106,7 @@ module.exports.handleEvent = async ({ api, event }) => {
             ]
         }
     ];
-    
+
     // التحقق من وجود الكلمات الرئيسية في الرسالة
     for (const response of responses) {
         if (response.keywords.some(keyword => message.includes(keyword))) {
@@ -114,6 +116,30 @@ module.exports.handleEvent = async ({ api, event }) => {
             // إرسال الرد
             return api.sendMessage(randomReply, event.threadID, event.messageID);
         }
+    }
+
+    // إضافة ردود جديدة
+    if (message.startsWith("ردود") && event.senderID === allowedUserId) {
+        const parts = message.split(" ");
+        const keyword = parts[1];
+        const reply = parts.slice(2).join(" ");
+        
+        if (!keyword || !reply) {
+            return api.sendMessage("يرجى كتابة الكلمة والرد. الصيغة: ردود [الكلمة] [الرد]", event.threadID, event.messageID);
+        }
+
+        // إضافة الكلمة والرد إلى الردود
+        responses.push({
+            keywords: [keyword],
+            replies: [reply]
+        });
+
+        return api.sendMessage(`تم إضافة رد جديد للكلمة "${keyword}"`, event.threadID, event.messageID);
+    }
+
+    // إذا حاول شخص آخر استخدام الأمر
+    if (message.startsWith("ردود")) {
+        return api.sendMessage("لا يمكنك استخدام الأمر هذا مخصص لمطور البوت أبو عباس.", event.threadID, event.messageID);
     }
 };
 
@@ -131,7 +157,8 @@ module.exports.run = async ({ api, event }) => {
         "- علي\n" +
         "- عبدو\n" +
         "- عباس\n" +
-        "- دلال", 
+        "- دلال\n" +
+        "لإضافة ردود جديدة، استخدم: ردود [الكلمة] [الرد]", 
         event.threadID, 
         event.messageID
     );
