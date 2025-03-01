@@ -1,59 +1,58 @@
 module.exports.config = {
-    name: "المغادرين",
+    name: "مراقبة",
     version: "1.0.0",
     hasPermssion: 0,
-    credits: "Starks",
-    description: "عرض قائمة المغادرين",
-    commandCategory: "المجموعة",
-    usages: "ستاركس",
+    credits: "عباس البغدادي",
+    description: "مراقبة تغييرات الكنيات في المجموعة",
+    commandCategory: "نظام",
+    usages: "مراقبة",
     cooldowns: 5
 };
 
-let leftMembers = new Map(); // لتخزين المغادرين لكل مجموعة
+// متغير لتخزين حالة المراقبة (مفعلة أم لا)
+let isMonitoring = false;
 
-module.exports.handleEvent = function({ api, event }) {
-    if (event.logMessageType === "log:unsubscribe") {
-        const leftUserID = event.logMessageData.leftParticipantFbId;
-        const threadID = event.threadID;
-        
-        // تخزين معلومات المغادر
-        if (!leftMembers.has(threadID)) {
-            leftMembers.set(threadID, []);
-        }
-        
-        // الحصول على اسم المستخدم المغادر
-        api.getUserInfo(leftUserID, (err, userInfo) => {
-            if (err) return;
-            
-            const userName = userInfo[leftUserID].name || "عضو مجهول";
-            const currentTime = new Date().toLocaleString();
-            
-            let threadMembers = leftMembers.get(threadID);
-            threadMembers.push({
-                name: userName,
-                time: currentTime
-            });
-            
-            leftMembers.set(threadID, threadMembers);
-        });
+module.exports.run = async({ api, event }) => {
+    const { threadID, messageID } = event;
+    
+    // تبديل حالة المراقبة
+    isMonitoring = !isMonitoring;
+    
+    if (isMonitoring) {
+        return api.sendMessage("✅ جار مراقبة نظام الكنيات في المجموعة", threadID, messageID);
+    } else {
+        return api.sendMessage("❌ تم إيقاف مراقبة نظام الكنيات", threadID, messageID);
     }
 };
 
-module.exports.run = async function({ api, event }) {
-    const { threadID } = event;
+module.exports.handleEvent = async({ api, event }) => {
+    // التحقق من نوع الحدث وما إذا كانت المراقبة مفعلة
+    if (event.type !== "change_thread_nickname" || !isMonitoring) return;
     
-    // التحقق من وجود مغادرين في المجموعة
-    if (!leftMembers.has(threadID) || leftMembers.get(threadID).length === 0) {
-        return api.sendMessage("⚠ لم يغادر أحد المجموعة حتى الآن.", threadID);
+    const { threadID, author, participantIDs, nickname } = event;
+    
+    try {
+        // الحصول على معلومات المستخدم الذي تم تغيير كنيته
+        const targetUser = participantIDs[0];
+        
+        // الحصول على معلومات المستخدمين
+        const userInfo = await api.getUserInfo([author, targetUser]);
+        
+        const authorName = userInfo[author].name;
+        const targetName = userInfo[targetUser].name;
+        
+        let message = "";
+        
+        // إذا قام الشخص بتغيير كنيته الخاصة
+        if (author === targetUser) {
+            message = `⚠️ تنبيه: قام ${authorName} بتغيير كنيته إلى "${nickname || 'لا توجد كنية'}"`;
+        } else {
+            message = `⚠️ تنبيه: قام ${authorName} بتغيير كنية ${targetName} إلى "${nickname || 'لا توجد كنية'}"`;
+        }
+        
+        // إرسال الإشعار في المجموعة
+        return api.sendMessage(message, threadID);
+    } catch (error) {
+        console.error("خطأ في معالجة تغيير الكنية:", error);
     }
-
-    // إنشاء رسالة بقائمة المغادرين
-    const members = leftMembers.get(threadID);
-    let message = "📋 قائمة الأعضاء الذين غادروا المجموعة:\n\n";
-    
-    members.forEach((member, index) => {
-        message += `${index + 1}. ${member.name}\n└─ غادر في: ${member.time}\n\n`;
-    });
-
-    api.sendMessage(message, threadID);
 };
