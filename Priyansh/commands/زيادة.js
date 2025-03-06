@@ -1,56 +1,94 @@
 module.exports.config = {
-    name: "زيادة",
-    version: "0.0.1",
-    permission: 2,
-    credits: "احمد عجينة",
+    name: "بريد",
+    version: "1.0.0",
+    permission: 0,
+    credits: "Modified by Claude",
     prefix: true,
-    description: "زيادة الرصيد",
-    category: "اسـتــرو",
+    description: "إنشاء وإدارة البريد المؤقت",
+    category: "أدوات",
     cooldowns: 5
 };
 
-module.exports.run = async function({ event, api, args, client, Currencies, Users, utils, __GLOBAL }) {
-    var mention = Object.keys(event.mentions)[0];
-    var content = args.join(" ");
-    var sender = content.slice(0, content.lastIndexOf(" "));
-    var moneySet = content.substring(content.lastIndexOf(" ") + 1);
+module.exports.run = async function({ event, api, args }) {
+    const axios = global.nodemodule['axios'];
+    const fs = global.nodemodule["fs-extra"];
 
-    if (args[0] == 'رصيدي') {
-        return api.sendMessage(`تم اضافة ${moneySet} الى رصيدك `, event.threadID, 
-            () => Currencies.increaseMoney(event.senderID, parseInt(moneySet)), event.messageID);
-    }
-    else if (args[0] == "del") {
-        if (args[1] == 'me') {
-            const moneyme = (await Currencies.getData(event.senderID)).money;
-            api.sendMessage(`✅تم حذف كل أموالك \n💸 المبلغ المراد حذفه هو ${moneyme}.`, event.threadID, 
-                async () => await Currencies.decreaseMoney(event.senderID, parseInt(moneyme)));
+    const generateEmail = async () => {
+        try {
+            const response = await axios.get("رابط1", {
+                params: {
+                    action: "genRandomMailbox",
+                    count: "https://www.1secmail.com/api/v1/"
+                },
+                headers: {
+                    'User-Agent': "okhttp/3.9.1",
+                    'Accept-Encoding': "gzip"
+                }
+            });
+            return response.data.split('["')[1].split('"]')[0];
+        } catch (error) {
+            return null;
         }
-        else if (Object.keys(event.mentions).length == 1) {
-            const moneydel = (await Currencies.getData(mention)).money;
-            api.sendMessage(`✅تمت إزالة كامل مبلغ ${event.mentions[mention].replace("@", "")} المبلغ المحذوف هو ${moneydel}.`, event.threadID, 
-                async () => await Currencies.decreaseMoney(mention, parseInt(moneydel)));
-        }
-        else return api.sendMessage("خطأ في الصيغة", event.threadID, event.messageID);
-    }
-    else if (Object.keys(event.mentions).length == 1) {
-        return api.sendMessage({
-            body: (`تم زيادة رصيد ${event.mentions[mention].replace("@", "")} ألى ${moneySet} دولار .`),
-            mentions: [{
-                tag: event.mentions[mention].replace("@", ""),
-                id: mention
-            }]
-        }, event.threadID, 
-            async () => Currencies.increaseMoney(mention, parseInt(moneySet)), event.messageID);
-    }
-    else if (args[0] == "UID") {
-        var id = args[1];
-        var cut = args[2];
-        let nameeee = (await Users.getData(id)).name;
-        return api.sendMessage(`تم تغيير رصيد ${nameeee} الى ${cut} دولار`, event.threadID, 
-            () => Currencies.increaseMoney(id, parseInt(cut)), event.messageID);
-    }
-    else {
-        api.sendMessage("خطأ في بناء الجملة", event.threadID, event.messageID);
-    }
-}
+    };
 
+    const checkMessages = async (email) => {
+        try {
+            const [name, domain] = email.split('@');
+            const response = await axios.get("https://www.1secmail.com/api/v1/", {
+                params: {
+                    action: "getMessages",
+                    login: name,
+                    domain: domain
+                },
+                headers: {
+                    'User-Agent': "okhttp/3.9.1",
+                    'Accept-Encoding': "gzip"
+                }
+            });
+            return response.data;
+        } catch (error) {
+            return [];
+        }
+    };
+
+    if (!args[0]) {
+        const email = await generateEmail();
+        if (email) {
+            api.sendMessage({
+                body: `=== [ بريد مؤقت جديد ] ===\n━━━━━━━━━━━━━━━━━━\n[ ▶️]➜ البريد: ${email}\n━━━━━━━━━━━━━━━━━━`
+            }, event.threadID, event.messageID);
+
+            // Start checking for messages
+            const checkInterval = setInterval(async () => {
+                const messages = await checkMessages(email);
+                for (const msg of messages) {
+                    api.sendMessage({
+                        body: `=== [ رسالة جديدة ] ===\n━━━━━━━━━━━━━━━━━━\n[ ▶️]➜ من: ${msg.from}\n[ ▶️]➜ الموضوع: ${msg.subject}\n[ ▶️]➜ المحتوى: ${msg.text || "لا يوجد محتوى"}\n━━━━━━━━━━━━━━━━━━`
+                    }, event.threadID);
+                }
+            }, 5000);
+
+            // Clear interval after 10 minutes
+            setTimeout(() => clearInterval(checkInterval), 600000);
+        } else {
+            api.sendMessage("❌ حدث خطأ في إنشاء البريد", event.threadID, event.messageID);
+        }
+    } else if (args[0] === "فحص") {
+        const email = args[1];
+        if (!email) {
+            api.sendMessage("❌ يرجى تحديد البريد المراد فحصه", event.threadID, event.messageID);
+            return;
+        }
+
+        const messages = await checkMessages(email);
+        if (messages.length > 0) {
+            let response = "=== [ الرسائل الواردة ] ===\n━━━━━━━━━━━━━━━━━━\n";
+            messages.forEach(msg => {
+                response += `[ ▶️]➜ من: ${msg.from}\n[ ▶️]➜ الموضوع: ${msg.subject}\n[ ▶️]➜ المحتوى: ${msg.text || "لا يوجد محتوى"}\n━━━━━━━━━━━━━━━━━━\n`;
+            });
+            api.sendMessage(response, event.threadID, event.messageID);
+        } else {
+            api.sendMessage("لا توجد رسائل جديدة", event.threadID, event.messageID);
+        }
+    }
+};
