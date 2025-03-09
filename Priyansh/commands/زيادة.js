@@ -13,7 +13,7 @@ const axios = require('axios');
 
 module.exports.run = async ({ api, event }) => {
     // رابط موقع انشاء البريد
-    const emailApiUrl = "https://www.1secmail.com/api/v1/";
+    const emailApiUrl = "https://temp-mail.org/ar/";
     
     // إرسال رسالة "جاري انشاء البريد"
     api.sendMessage("🔍 | جاري إنشاء بريد إلكتروني، انتظر قليلاً...", event.threadID);
