@@ -34,7 +34,7 @@ module.exports.run = async ({ api, event, args }) => {
             const url = "https://www.1secmail.com/api/v1/";
             const params = {
                 action: "genRandomMailbox",
-                count: "1"
+                count: "https://www.1secmail.com/api/v1/"
             };
             const headers = {
                 'User-Agent': "okhttp/3.9.1",
